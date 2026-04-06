@@ -25,3 +25,16 @@ export interface ColimaStatus {
   memory_gib: number;
   disk_gib: number;
 }
+
+export interface VmSettings {
+  cpus: number;
+  memory_gib: number;
+  disk_gib: number;
+  runtime: string;
+  network_address: string;
+}
+
+export interface HostInfo {
+  cpus: number;
+  memory_gib: number;
+}

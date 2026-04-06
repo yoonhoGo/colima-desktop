@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Container, Image, ColimaStatus } from "../types";
+import type { Container, Image, ColimaStatus, VmSettings, HostInfo } from "../types";
 
 export const api = {
   colimaStatus: () => invoke<ColimaStatus>("colima_status"),
@@ -15,4 +15,8 @@ export const api = {
   listImages: () => invoke<Image[]>("list_images"),
   pullImage: (name: string) => invoke<void>("pull_image", { name }),
   removeImage: (id: string) => invoke<void>("remove_image", { id }),
+  getVmSettings: () => invoke<VmSettings>("get_vm_settings"),
+  getHostInfo: () => invoke<HostInfo>("get_host_info"),
+  applyVmSettings: (settings: { cpus: number; memoryGib: number; diskGib: number; runtime: string; networkAddress: string }) =>
+    invoke<void>("apply_vm_settings", settings),
 };
