@@ -20,6 +20,9 @@ pub fn run() {
             commands::image::list_images,
             commands::image::pull_image,
             commands::image::remove_image,
+            commands::vm_settings::get_vm_settings,
+            commands::vm_settings::get_host_info,
+            commands::vm_settings::apply_vm_settings,
         ])
         .setup(|app| {
             tray::create_tray(app)?;
