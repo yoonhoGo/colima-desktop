@@ -5,11 +5,14 @@ import { ImageList } from "../images/ImageList";
 import { VolumeList } from "../volumes/VolumeList";
 import { NetworkList } from "../networks/NetworkList";
 import { VmSettings } from "../settings/VmSettings";
+import { MountSettings } from "../settings/MountSettings";
 
 type Page = "containers" | "images" | "volumes" | "networks" | "settings";
+type SettingsTab = "vm" | "mounts";
 
 export function MainLayout() {
   const [activePage, setActivePage] = useState<Page>("containers");
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("vm");
 
   return (
     <div className="flex h-screen">
@@ -19,7 +22,34 @@ export function MainLayout() {
         {activePage === "images" && <ImageList />}
         {activePage === "volumes" && <VolumeList />}
         {activePage === "networks" && <NetworkList />}
-        {activePage === "settings" && <VmSettings />}
+        {activePage === "settings" && (
+          <div className="space-y-4">
+            <div className="mx-auto max-w-lg flex gap-1 rounded-lg bg-muted p-1">
+              <button
+                onClick={() => setSettingsTab("vm")}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  settingsTab === "vm"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                VM
+              </button>
+              <button
+                onClick={() => setSettingsTab("mounts")}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  settingsTab === "mounts"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Mounts
+              </button>
+            </div>
+            {settingsTab === "vm" && <VmSettings />}
+            {settingsTab === "mounts" && <MountSettings />}
+          </div>
+        )}
       </main>
     </div>
   );

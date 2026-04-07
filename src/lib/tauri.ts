@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network } from "../types";
+import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry } from "../types";
 
 export const api = {
   colimaStatus: () => invoke<ColimaStatus>("colima_status"),
@@ -31,4 +31,7 @@ export const api = {
   createNetwork: (params: { name: string; driver?: string }) => invoke<string>("create_network", params),
   removeNetwork: (id: string) => invoke<void>("remove_network", { id }),
   pruneNetworks: () => invoke<string>("prune_networks"),
+  getMountSettings: () => invoke<MountSettings>("get_mount_settings"),
+  saveMountSettings: (params: { mounts: MountEntry[]; mountType: string; mountInotify: boolean }) =>
+    invoke<void>("save_mount_settings", params),
 };

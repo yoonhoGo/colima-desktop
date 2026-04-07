@@ -34,6 +34,8 @@ pub fn run() {
             commands::network::create_network,
             commands::network::remove_network,
             commands::network::prune_networks,
+            commands::mounts::get_mount_settings,
+            commands::mounts::save_mount_settings,
         ])
         .setup(|app| {
             tray::create_tray(app)?;

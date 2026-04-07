@@ -59,3 +59,14 @@ export interface Network {
   internal: boolean;
   labels: string;
 }
+
+export interface MountEntry {
+  location: string;
+  writable: boolean;
+}
+
+export interface MountSettings {
+  mounts: MountEntry[];
+  mount_type: string;
+  mount_inotify: boolean;
+}

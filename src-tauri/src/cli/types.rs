@@ -244,3 +244,17 @@ pub struct ColimaListEntry {
     pub network_address: String,
     pub status: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MountEntry {
+    pub location: String,
+    #[serde(default)]
+    pub writable: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MountSettings {
+    pub mounts: Vec<MountEntry>,
+    pub mount_type: String,
+    pub mount_inotify: bool,
+}
