@@ -19,14 +19,37 @@
 
 > 준비 중
 
-## 사전 요구 사항
+## 설치
 
-- macOS (Apple Silicon 또는 Intel)
+### 빠른 설치 (macOS / Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yoonhoGo/colima-desktop/main/install.sh | sh
+```
+
+설치 스크립트가 OS와 아키텍처를 자동 감지하고, GitHub에서 최신 릴리스를 다운로드하여 설치합니다.
+
+- **macOS**: `Colima Desktop.app`을 `/Applications`에 설치
+- **Linux (Debian/Ubuntu)**: `.deb` 패키지로 설치
+- **Linux (기타)**: AppImage를 `~/.local/bin`에 설치
+
+### GitHub Releases에서 다운로드
+
+모든 플랫폼의 빌드된 바이너리는 [Releases](https://github.com/yoonhoGo/colima-desktop/releases) 페이지에서 다운로드할 수 있습니다.
+
+| 플랫폼 | 파일 |
+|--------|------|
+| macOS (Apple Silicon) | `Colima.Desktop_x.x.x_aarch64.dmg` |
+| macOS (Intel) | `Colima.Desktop_x.x.x_x86_64.dmg` |
+| Linux (Debian/Ubuntu) | `colima-desktop_x.x.x_amd64.deb` |
+| Linux (AppImage) | `colima-desktop_x.x.x_amd64.AppImage` |
+| Windows | `Colima.Desktop_x.x.x_x64-setup.exe` |
+
+### 사전 요구 사항
+
 - [Colima](https://github.com/abiosoft/colima) 설치 및 설정 완료
-- [Rust](https://rustup.rs/) 툴체인
-- [Node.js](https://nodejs.org/) 18+
 
-## 시작하기
+## 개발
 
 ```bash
 # 저장소 클론
@@ -42,6 +65,11 @@ npm run tauri dev
 # 프로덕션 빌드
 npm run tauri build
 ```
+
+### 개발 사전 요구 사항
+
+- [Rust](https://rustup.rs/) 툴체인
+- [Node.js](https://nodejs.org/) 18+
 
 ## 기술 스택
 

@@ -6,6 +6,7 @@ mod tray;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             commands::colima::colima_status,
             commands::colima::colima_start,

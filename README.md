@@ -19,14 +19,37 @@ Built with **Tauri 2** (Rust) + **React 19** + **TypeScript**.
 
 > Coming soon
 
-## Prerequisites
+## Installation
 
-- macOS (Apple Silicon or Intel)
+### Quick Install (macOS / Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yoonhoGo/colima-desktop/main/install.sh | sh
+```
+
+The install script automatically detects your OS and architecture, downloads the latest release from GitHub, and installs it.
+
+- **macOS**: Installs `Colima Desktop.app` to `/Applications`
+- **Linux (Debian/Ubuntu)**: Installs via `.deb` package
+- **Linux (Other)**: Installs AppImage to `~/.local/bin`
+
+### Download from GitHub Releases
+
+Pre-built binaries for all platforms are available on the [Releases](https://github.com/yoonhoGo/colima-desktop/releases) page.
+
+| Platform | File |
+|----------|------|
+| macOS (Apple Silicon) | `Colima.Desktop_x.x.x_aarch64.dmg` |
+| macOS (Intel) | `Colima.Desktop_x.x.x_x86_64.dmg` |
+| Linux (Debian/Ubuntu) | `colima-desktop_x.x.x_amd64.deb` |
+| Linux (AppImage) | `colima-desktop_x.x.x_amd64.AppImage` |
+| Windows | `Colima.Desktop_x.x.x_x64-setup.exe` |
+
+### Prerequisites
+
 - [Colima](https://github.com/abiosoft/colima) installed and configured
-- [Rust](https://rustup.rs/) toolchain
-- [Node.js](https://nodejs.org/) 18+
 
-## Getting Started
+## Development
 
 ```bash
 # Clone the repository
@@ -42,6 +65,11 @@ npm run tauri dev
 # Build for production
 npm run tauri build
 ```
+
+### Development Prerequisites
+
+- [Rust](https://rustup.rs/) toolchain
+- [Node.js](https://nodejs.org/) 18+
 
 ## Tech Stack
 
