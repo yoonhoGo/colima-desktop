@@ -167,3 +167,30 @@ export interface DevContainerConfig {
   forward_ports: number[];
   remote_user: string;
 }
+
+export interface MdnsProperty {
+  key: string;
+  value: string;
+}
+
+export interface MdnsServiceEntry {
+  instance_name: string;
+  service_type: string;
+  hostname: string;
+  port: number;
+  addresses: string[];
+  properties: MdnsProperty[];
+}
+
+export interface MdnsRegistration {
+  instance_name: string;
+  service_type: string;
+  port: number;
+  properties: MdnsProperty[];
+}
+
+export interface MdnsState {
+  enabled: boolean;
+  registered_services: MdnsRegistration[];
+  discovered_services: MdnsServiceEntry[];
+}

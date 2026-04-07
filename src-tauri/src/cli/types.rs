@@ -380,3 +380,34 @@ pub struct DevContainerReadConfig {
     pub forward_ports: Vec<u16>,
     pub remote_user: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MdnsServiceEntry {
+    pub instance_name: String,
+    pub service_type: String,
+    pub hostname: String,
+    pub port: u16,
+    pub addresses: Vec<String>,
+    pub properties: Vec<MdnsProperty>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MdnsProperty {
+    pub key: String,
+    pub value: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MdnsRegistration {
+    pub instance_name: String,
+    pub service_type: String,
+    pub port: u16,
+    pub properties: Vec<MdnsProperty>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct MdnsState {
+    pub enabled: bool,
+    pub registered_services: Vec<MdnsRegistration>,
+    pub discovered_services: Vec<MdnsServiceEntry>,
+}

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats, ColimaVersion, VersionCheck, DevContainerProject, DevContainerConfig } from "../types";
+import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats, ColimaVersion, VersionCheck, DevContainerProject, DevContainerConfig, MdnsState, MdnsServiceEntry, MdnsProperty } from "../types";
 
 export const api = {
   colimaStatus: () => invoke<ColimaStatus>("colima_status"),
@@ -66,4 +66,22 @@ export const api = {
     invoke<void>("devcontainer_stop", { workspacePath }),
   devcontainerReadConfig: (workspacePath: string) =>
     invoke<DevContainerConfig>("devcontainer_read_config", { workspacePath }),
+  mdnsEnable: () => invoke<void>("mdns_enable"),
+  mdnsDisable: () => invoke<void>("mdns_disable"),
+  mdnsGetState: () => invoke<MdnsState>("mdns_get_state"),
+  mdnsRegisterService: (params: {
+    instanceName: string;
+    serviceType: string;
+    port: number;
+    properties: MdnsProperty[];
+  }) => invoke<void>("mdns_register_service", params),
+  mdnsUnregisterService: (params: { instanceName: string; serviceType: string }) =>
+    invoke<void>("mdns_unregister_service", params),
+  mdnsBrowse: (serviceType: string) =>
+    invoke<MdnsServiceEntry[]>("mdns_browse", { serviceType }),
+  mdnsRegisterContainer: (params: {
+    containerName: string;
+    port: number;
+    serviceType?: string;
+  }) => invoke<void>("mdns_register_container", params),
 };

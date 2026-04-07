@@ -5,6 +5,7 @@ mod tray;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(commands::mdns::create_mdns_state())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
@@ -56,6 +57,13 @@ pub fn run() {
             commands::devcontainer::devcontainer_build,
             commands::devcontainer::devcontainer_stop,
             commands::devcontainer::devcontainer_read_config,
+            commands::mdns::mdns_enable,
+            commands::mdns::mdns_disable,
+            commands::mdns::mdns_get_state,
+            commands::mdns::mdns_register_service,
+            commands::mdns::mdns_unregister_service,
+            commands::mdns::mdns_browse,
+            commands::mdns::mdns_register_container,
         ])
         .setup(|app| {
             tray::create_tray(app)?;

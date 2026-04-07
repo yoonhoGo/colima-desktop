@@ -2,6 +2,7 @@ pub mod colima;
 pub mod container;
 pub mod docker_settings;
 pub mod image;
+pub mod mdns;
 pub mod mounts;
 pub mod network;
 pub mod network_settings;
