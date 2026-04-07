@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats } from "../types";
+import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats, ColimaVersion, VersionCheck } from "../types";
 
 export const api = {
   colimaStatus: () => invoke<ColimaStatus>("colima_status"),
@@ -49,4 +49,7 @@ export const api = {
     invoke<void>("save_docker_settings", params),
   containerInspect: (id: string) => invoke<ContainerDetail>("container_inspect", { id }),
   containerStats: (id: string) => invoke<ContainerStats>("container_stats", { id }),
+  getColimaVersion: () => invoke<ColimaVersion>("get_colima_version"),
+  updateColimaRuntime: () => invoke<string>("update_colima_runtime"),
+  checkLatestVersion: () => invoke<VersionCheck>("check_latest_version"),
 };

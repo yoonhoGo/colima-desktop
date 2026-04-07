@@ -259,6 +259,26 @@ pub struct MountSettings {
     pub mount_inotify: bool,
 }
 
+#[derive(Debug, Serialize, Clone)]
+pub struct ColimaVersion {
+    pub version: String,
+    pub git_commit: String,
+    pub runtime_versions: Vec<RuntimeVersion>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct RuntimeVersion {
+    pub name: String,
+    pub version: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct VersionCheck {
+    pub current: String,
+    pub latest: String,
+    pub update_available: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DockerDaemonSettings {
     pub insecure_registries: Vec<String>,

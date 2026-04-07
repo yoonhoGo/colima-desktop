@@ -135,3 +135,20 @@ export interface ContainerStats {
   block_io: string;
   pids: string;
 }
+
+export interface ColimaVersion {
+  version: string;
+  git_commit: string;
+  runtime_versions: RuntimeVersion[];
+}
+
+export interface RuntimeVersion {
+  name: string;
+  version: string;
+}
+
+export interface VersionCheck {
+  current: string;
+  latest: string;
+  update_available: boolean;
+}

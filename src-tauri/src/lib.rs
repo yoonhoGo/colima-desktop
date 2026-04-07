@@ -42,6 +42,9 @@ pub fn run() {
             commands::network_settings::save_network_settings,
             commands::docker_settings::get_docker_settings,
             commands::docker_settings::save_docker_settings,
+            commands::update::get_colima_version,
+            commands::update::update_colima_runtime,
+            commands::update::check_latest_version,
         ])
         .setup(|app| {
             tray::create_tray(app)?;
