@@ -1,9 +1,11 @@
-import { useImages } from "../../hooks/useImages";
+import { useImages, usePruneImages } from "../../hooks/useImages";
 import { ImageRow } from "./ImageRow";
 import { ImagePull } from "./ImagePull";
+import { Button } from "@/components/ui/button";
 
 export function ImageList() {
   const { data: images, isLoading, error } = useImages();
+  const prune = usePruneImages();
 
   const totalSize = images
     ?.map((img) => {
@@ -25,6 +27,15 @@ export function ImageList() {
             <p className="text-xs text-muted-foreground">Total: {totalSize.toFixed(2)} GB ({images?.length} images)</p>
           )}
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive"
+          onClick={() => prune.mutate()}
+          disabled={prune.isPending}
+        >
+          {prune.isPending ? "Pruning..." : "Prune Unused"}
+        </Button>
       </div>
       <div className="mb-4"><ImagePull /></div>
       {isLoading && <p className="text-sm text-muted-foreground">Loading...</p>}

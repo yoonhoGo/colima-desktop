@@ -54,3 +54,8 @@ pub async fn remove_image(id: String) -> Result<(), String> {
     CliExecutor::run(DOCKER, &["rmi", &id]).await?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn prune_images() -> Result<String, String> {
+    CliExecutor::run(DOCKER, &["image", "prune", "-af"]).await
+}

@@ -25,3 +25,20 @@ export function useContainerAction() {
     },
   });
 }
+
+export function usePruneContainers() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.pruneContainers(),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["containers"] }); },
+  });
+}
+
+export function useRunContainer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { image: string; name?: string; ports?: string; envVars?: string[] }) =>
+      api.runContainer(params),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["containers"] }); },
+  });
+}

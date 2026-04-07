@@ -40,3 +40,22 @@ export interface HostInfo {
   cpus: number;
   memory_gib: number;
 }
+
+export interface Volume {
+  name: string;
+  driver: string;
+  scope: string;
+  mountpoint: string;
+  labels: string;
+  size: string;
+}
+
+export interface Network {
+  id: string;
+  name: string;
+  driver: string;
+  scope: string;
+  ipv6: boolean;
+  internal: boolean;
+  labels: string;
+}

@@ -38,6 +38,52 @@ pub async fn container_remove(id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub async fn prune_containers() -> Result<String, String> {
+    CliExecutor::run(DOCKER, &["container", "prune", "-f"]).await
+}
+
+#[tauri::command]
+pub async fn run_container(
+    image: String,
+    name: Option<String>,
+    ports: Option<String>,
+    env_vars: Option<Vec<String>>,
+) -> Result<String, String> {
+    let mut args: Vec<String> = vec!["run".into(), "-d".into()];
+
+    if let Some(n) = name {
+        if !n.is_empty() {
+            args.push("--name".into());
+            args.push(n);
+        }
+    }
+
+    if let Some(p) = ports {
+        for mapping in p.split(',') {
+            let mapping = mapping.trim();
+            if !mapping.is_empty() {
+                args.push("-p".into());
+                args.push(mapping.to_string());
+            }
+        }
+    }
+
+    if let Some(envs) = env_vars {
+        for e in envs {
+            if !e.is_empty() {
+                args.push("-e".into());
+                args.push(e);
+            }
+        }
+    }
+
+    args.push(image);
+
+    let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    CliExecutor::run(DOCKER, &refs).await
+}
+
+#[tauri::command]
 pub async fn stream_container_logs(app: AppHandle, id: String) -> Result<(), String> {
     let docker_host = crate::cli::executor::docker_host();
 

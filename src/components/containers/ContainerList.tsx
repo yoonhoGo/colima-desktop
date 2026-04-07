@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { useContainers } from "../../hooks/useContainers";
+import { useContainers, usePruneContainers } from "../../hooks/useContainers";
 import { ContainerRow } from "./ContainerRow";
 import { ComposeGroup } from "./ComposeGroup";
 import { ContainerLogs } from "./ContainerLogs";
+import { ContainerRun } from "./ContainerRun";
 import { Button } from "@/components/ui/button";
 import type { Container } from "../../types";
 
@@ -15,8 +16,13 @@ interface ComposeGroupData {
 
 export function ContainerList() {
   const { data: containers, isLoading, error } = useContainers();
+  const prune = usePruneContainers();
   const [filter, setFilter] = useState<Filter>("all");
   const [logsContainerId, setLogsContainerId] = useState<string | null>(null);
+
+  const stoppedCount = useMemo(() =>
+    containers?.filter((c) => c.state !== "running").length ?? 0,
+  [containers]);
 
   const filtered = useMemo(() => {
     if (!containers) return [];
@@ -62,8 +68,18 @@ export function ContainerList() {
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </Button>
           ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive"
+            onClick={() => prune.mutate()}
+            disabled={prune.isPending || stoppedCount === 0}
+          >
+            {prune.isPending ? "Pruning..." : "Prune"}
+          </Button>
         </div>
       </div>
+      <div className="mb-4"><ContainerRun /></div>
       {isLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
       {error && <p className="text-sm text-destructive">Failed to load containers. Is Colima running?</p>}
       <div className="flex flex-col gap-2">

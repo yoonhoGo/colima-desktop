@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useColimaStatus } from "../../hooks/useColimaStatus";
 
-type Page = "containers" | "images" | "settings";
+type Page = "containers" | "images" | "volumes" | "networks" | "settings";
 
 interface SidebarProps {
   activePage: Page;
@@ -37,6 +37,22 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
           )}
         >
           Images
+        </button>
+        <button
+          onClick={() => onPageChange("volumes")}
+          className={cn("rounded-md px-3 py-2 text-left text-sm transition-colors",
+            activePage === "volumes" ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
+          )}
+        >
+          Volumes
+        </button>
+        <button
+          onClick={() => onPageChange("networks")}
+          className={cn("rounded-md px-3 py-2 text-left text-sm transition-colors",
+            activePage === "networks" ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
+          )}
+        >
+          Networks
         </button>
         <button
           onClick={() => onPageChange("settings")}

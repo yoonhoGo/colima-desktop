@@ -24,3 +24,11 @@ export function usePullImage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["images"] }); },
   });
 }
+
+export function usePruneImages() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.pruneImages(),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["images"] }); },
+  });
+}

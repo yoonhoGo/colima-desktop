@@ -157,6 +157,84 @@ pub struct HostInfo {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerVolumeEntry {
+    pub name: String,
+    pub driver: String,
+    pub scope: String,
+    pub mountpoint: String,
+    #[serde(default)]
+    pub labels: String,
+    #[serde(default)]
+    pub size: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct Volume {
+    pub name: String,
+    pub driver: String,
+    pub scope: String,
+    pub mountpoint: String,
+    pub labels: String,
+    pub size: String,
+}
+
+impl From<DockerVolumeEntry> for Volume {
+    fn from(entry: DockerVolumeEntry) -> Self {
+        Volume {
+            name: entry.name,
+            driver: entry.driver,
+            scope: entry.scope,
+            mountpoint: entry.mountpoint,
+            labels: entry.labels,
+            size: entry.size,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerNetworkEntry {
+    #[serde(rename = "ID")]
+    pub id: String,
+    pub name: String,
+    pub driver: String,
+    pub scope: String,
+    #[serde(rename = "IPv6")]
+    #[serde(default)]
+    pub ipv6: String,
+    #[serde(default)]
+    pub internal: String,
+    #[serde(default)]
+    pub labels: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct Network {
+    pub id: String,
+    pub name: String,
+    pub driver: String,
+    pub scope: String,
+    pub ipv6: bool,
+    pub internal: bool,
+    pub labels: String,
+}
+
+impl From<DockerNetworkEntry> for Network {
+    fn from(entry: DockerNetworkEntry) -> Self {
+        Network {
+            id: entry.id,
+            name: entry.name,
+            driver: entry.driver,
+            scope: entry.scope,
+            ipv6: entry.ipv6 == "true",
+            internal: entry.internal == "true",
+            labels: entry.labels,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 pub struct ColimaListEntry {
     pub cpus: u32,
     pub memory: u64,
