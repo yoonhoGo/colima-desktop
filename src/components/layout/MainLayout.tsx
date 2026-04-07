@@ -6,9 +6,10 @@ import { VolumeList } from "../volumes/VolumeList";
 import { NetworkList } from "../networks/NetworkList";
 import { VmSettings } from "../settings/VmSettings";
 import { MountSettings } from "../settings/MountSettings";
+import { NetworkSettingsPanel } from "../settings/NetworkSettingsPanel";
 
 type Page = "containers" | "images" | "volumes" | "networks" | "settings";
-type SettingsTab = "vm" | "mounts";
+type SettingsTab = "vm" | "mounts" | "network";
 
 export function MainLayout() {
   const [activePage, setActivePage] = useState<Page>("containers");
@@ -45,9 +46,20 @@ export function MainLayout() {
               >
                 Mounts
               </button>
+              <button
+                onClick={() => setSettingsTab("network")}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  settingsTab === "network"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Network
+              </button>
             </div>
             {settingsTab === "vm" && <VmSettings />}
             {settingsTab === "mounts" && <MountSettings />}
+            {settingsTab === "network" && <NetworkSettingsPanel />}
           </div>
         )}
       </main>

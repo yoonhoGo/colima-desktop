@@ -70,3 +70,18 @@ export interface MountSettings {
   mount_type: string;
   mount_inotify: boolean;
 }
+
+export interface DnsHostEntry {
+  hostname: string;
+  ip: string;
+}
+
+export interface NetworkSettings {
+  dns: string[];
+  dns_hosts: DnsHostEntry[];
+  network_address: boolean;
+  network_mode: string;
+  gateway_address: string;
+  network_interface: string;
+  port_forwarder: string;
+}
