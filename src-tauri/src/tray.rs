@@ -167,8 +167,17 @@ pub fn create_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
     let initial_status = ColimaStatus::stopped();
     let menu = build_tray_menu(&app.handle(), &initial_status, &[])?;
 
+    let tray_icon = {
+        let icon_bytes = include_bytes!("../icons/tray-icon@2x.png");
+        let img = image::load_from_memory(icon_bytes).expect("Failed to load tray icon");
+        let rgba = img.to_rgba8();
+        let (width, height) = rgba.dimensions();
+        tauri::image::Image::new_owned(rgba.into_raw(), width, height)
+    };
+
     let tray = TrayIconBuilder::new()
-        .icon(app.default_window_icon().unwrap().clone())
+        .icon(tray_icon)
+        .icon_as_template(true)
         .menu(&menu)
         .tooltip("Colima Desktop")
         .on_menu_event(move |app, event| {
