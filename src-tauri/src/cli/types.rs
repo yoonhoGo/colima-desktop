@@ -260,6 +260,12 @@ pub struct MountSettings {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DockerDaemonSettings {
+    pub insecure_registries: Vec<String>,
+    pub registry_mirrors: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NetworkSettings {
     pub dns: Vec<String>,
     pub dns_hosts: Vec<DnsHostEntry>,

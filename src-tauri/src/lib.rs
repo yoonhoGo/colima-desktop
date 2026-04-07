@@ -38,6 +38,8 @@ pub fn run() {
             commands::mounts::save_mount_settings,
             commands::network_settings::get_network_settings,
             commands::network_settings::save_network_settings,
+            commands::docker_settings::get_docker_settings,
+            commands::docker_settings::save_docker_settings,
         ])
         .setup(|app| {
             tray::create_tray(app)?;

@@ -85,3 +85,8 @@ export interface NetworkSettings {
   network_interface: string;
   port_forwarder: string;
 }
+
+export interface DockerDaemonSettings {
+  insecure_registries: string[];
+  registry_mirrors: string[];
+}

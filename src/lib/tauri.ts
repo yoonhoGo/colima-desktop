@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry } from "../types";
+import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings } from "../types";
 
 export const api = {
   colimaStatus: () => invoke<ColimaStatus>("colima_status"),
@@ -44,4 +44,7 @@ export const api = {
     networkInterface: string;
     portForwarder: string;
   }) => invoke<void>("save_network_settings", params),
+  getDockerSettings: () => invoke<DockerDaemonSettings>("get_docker_settings"),
+  saveDockerSettings: (params: { insecureRegistries: string[]; registryMirrors: string[] }) =>
+    invoke<void>("save_docker_settings", params),
 };

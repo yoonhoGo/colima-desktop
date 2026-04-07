@@ -7,9 +7,10 @@ import { NetworkList } from "../networks/NetworkList";
 import { VmSettings } from "../settings/VmSettings";
 import { MountSettings } from "../settings/MountSettings";
 import { NetworkSettingsPanel } from "../settings/NetworkSettingsPanel";
+import { DockerSettingsPanel } from "../settings/DockerSettingsPanel";
 
 type Page = "containers" | "images" | "volumes" | "networks" | "settings";
-type SettingsTab = "vm" | "mounts" | "network";
+type SettingsTab = "vm" | "mounts" | "network" | "docker";
 
 export function MainLayout() {
   const [activePage, setActivePage] = useState<Page>("containers");
@@ -56,10 +57,21 @@ export function MainLayout() {
               >
                 Network
               </button>
+              <button
+                onClick={() => setSettingsTab("docker")}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  settingsTab === "docker"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Docker
+              </button>
             </div>
             {settingsTab === "vm" && <VmSettings />}
             {settingsTab === "mounts" && <MountSettings />}
             {settingsTab === "network" && <NetworkSettingsPanel />}
+            {settingsTab === "docker" && <DockerSettingsPanel />}
           </div>
         )}
       </main>
