@@ -188,15 +188,7 @@
   }
   body {
     @apply text-foreground;
-    background: var(--bg-gradient);
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: var(--bg-glow);
-    pointer-events: none;
-    z-index: 0;
+    background: transparent;
   }
   html {
     @apply font-sans;

@@ -8,6 +8,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_liquid_glass::init())
         .invoke_handler(tauri::generate_handler![
             commands::colima::colima_status,
             commands::colima::colima_start,
