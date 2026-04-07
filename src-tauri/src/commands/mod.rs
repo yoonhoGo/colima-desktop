@@ -6,5 +6,6 @@ pub mod mounts;
 pub mod network;
 pub mod network_settings;
 pub mod vm_settings;
+pub mod devcontainer;
 pub mod update;
 pub mod volume;

@@ -46,6 +46,14 @@ pub fn run() {
             commands::update::get_colima_version,
             commands::update::update_colima_runtime,
             commands::update::check_latest_version,
+            commands::devcontainer::check_devcontainer_cli,
+            commands::devcontainer::list_devcontainer_projects,
+            commands::devcontainer::add_devcontainer_project,
+            commands::devcontainer::remove_devcontainer_project,
+            commands::devcontainer::devcontainer_up,
+            commands::devcontainer::devcontainer_build,
+            commands::devcontainer::devcontainer_stop,
+            commands::devcontainer::devcontainer_read_config,
         ])
         .setup(|app| {
             tray::create_tray(app)?;
