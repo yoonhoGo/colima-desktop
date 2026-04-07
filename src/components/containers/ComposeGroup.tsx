@@ -34,9 +34,9 @@ export function ComposeGroup({ project, containers, onViewLogs, onInspect }: Com
   };
 
   return (
-    <div className="rounded-md border">
+    <div className="glass-group overflow-hidden">
       <div
-        className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+        className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-[var(--glass-bg-hover)] transition-all"
         onClick={() => setExpanded(!expanded)}
       >
         {expanded ? (
@@ -64,9 +64,9 @@ export function ComposeGroup({ project, containers, onViewLogs, onInspect }: Com
         </div>
       </div>
       {expanded && (
-        <div className="border-t">
+        <div className="border-t border-[var(--glass-border)] px-2 pb-2 pt-1 space-y-1">
           {containers.map((container) => (
-            <div key={container.id} className="pl-6">
+            <div key={container.id} className="pl-4">
               <ContainerRow container={container} onViewLogs={onViewLogs} onInspect={onInspect} showServiceName />
             </div>
           ))}
