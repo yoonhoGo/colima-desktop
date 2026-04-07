@@ -32,7 +32,7 @@ export function ContainerRun() {
   }
 
   return (
-    <div className="rounded-md border p-3 space-y-2">
+    <div className="glass-section p-3 space-y-2">
       <div className="flex gap-2">
         <Input
           placeholder="Image (e.g. nginx:alpine)"

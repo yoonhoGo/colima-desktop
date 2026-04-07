@@ -48,7 +48,7 @@ export function ContainerDetail({ containerId, onBack }: ContainerDetailProps) {
 
       <div className="flex flex-col gap-4">
         {/* Overview */}
-        <section className="rounded-md border p-4">
+        <section className="glass-section p-4">
           <h2 className="mb-3 text-sm font-semibold">Overview</h2>
           <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
             <span className="text-muted-foreground">Image</span>
@@ -68,7 +68,7 @@ export function ContainerDetail({ containerId, onBack }: ContainerDetailProps) {
 
         {/* Resource Usage */}
         {stats && (
-          <section className="rounded-md border p-4">
+          <section className="glass-section p-4">
             <h2 className="mb-3 text-sm font-semibold">Resource Usage</h2>
             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
               <span className="text-muted-foreground">CPU</span>
@@ -87,7 +87,7 @@ export function ContainerDetail({ containerId, onBack }: ContainerDetailProps) {
 
         {/* Environment Variables */}
         {detail.env_vars.length > 0 && (
-          <section className="rounded-md border p-4">
+          <section className="glass-section p-4">
             <h2 className="mb-3 text-sm font-semibold">Environment Variables</h2>
             <div className="max-h-48 overflow-y-auto">
               <div className="flex flex-col gap-1">
@@ -101,7 +101,7 @@ export function ContainerDetail({ containerId, onBack }: ContainerDetailProps) {
 
         {/* Ports */}
         {detail.ports.length > 0 && (
-          <section className="rounded-md border p-4">
+          <section className="glass-section p-4">
             <h2 className="mb-3 text-sm font-semibold">Ports</h2>
             <div className="flex flex-col gap-1 text-sm">
               {detail.ports.map((port, i) => (
@@ -116,7 +116,7 @@ export function ContainerDetail({ containerId, onBack }: ContainerDetailProps) {
 
         {/* Mounts */}
         {detail.mounts.length > 0 && (
-          <section className="rounded-md border p-4">
+          <section className="glass-section p-4">
             <h2 className="mb-3 text-sm font-semibold">Mounts</h2>
             <div className="flex flex-col gap-1 text-sm">
               {detail.mounts.map((mount, i) => (
@@ -131,7 +131,7 @@ export function ContainerDetail({ containerId, onBack }: ContainerDetailProps) {
 
         {/* Networks */}
         {detail.networks.length > 0 && (
-          <section className="rounded-md border p-4">
+          <section className="glass-section p-4">
             <h2 className="mb-3 text-sm font-semibold">Networks</h2>
             <div className="flex flex-col gap-1 text-sm">
               {detail.networks.map((net, i) => (

@@ -37,7 +37,7 @@ export function ContainerLogs({ containerId, onBack }: ContainerLogsProps) {
           {autoScroll ? "Auto-scroll: On" : "Auto-scroll: Off"}
         </Button>
       </div>
-      <ScrollArea className="flex-1 rounded-md border bg-black p-3">
+      <ScrollArea className="flex-1 rounded-xl border border-[var(--glass-border)] bg-black/90 p-3 shadow-lg">
         <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">{logs.join("\n")}</pre>
         <div ref={bottomRef} />
       </ScrollArea>
