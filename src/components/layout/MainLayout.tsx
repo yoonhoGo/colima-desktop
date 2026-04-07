@@ -18,7 +18,7 @@ export function MainLayout() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vm");
 
   return (
-    <div className="flex h-screen">
+    <div className="relative z-10 flex h-screen">
       <Sidebar activePage={activePage} onPageChange={setActivePage} />
       <main className="flex-1 overflow-auto p-4">
         {activePage === "containers" && <ContainerList />}
@@ -27,53 +27,53 @@ export function MainLayout() {
         {activePage === "networks" && <NetworkList />}
         {activePage === "settings" && (
           <div className="space-y-4">
-            <div className="mx-auto max-w-lg flex gap-1 rounded-lg bg-muted p-1">
+            <div className="mx-auto max-w-lg flex gap-1 rounded-xl glass-panel p-1">
               <button
                 onClick={() => setSettingsTab("vm")}
-                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                   settingsTab === "vm"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
+                    : "text-muted-foreground hover:text-foreground border border-transparent"
                 }`}
               >
                 VM
               </button>
               <button
                 onClick={() => setSettingsTab("mounts")}
-                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                   settingsTab === "mounts"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
+                    : "text-muted-foreground hover:text-foreground border border-transparent"
                 }`}
               >
                 Mounts
               </button>
               <button
                 onClick={() => setSettingsTab("network")}
-                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                   settingsTab === "network"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
+                    : "text-muted-foreground hover:text-foreground border border-transparent"
                 }`}
               >
                 Network
               </button>
               <button
                 onClick={() => setSettingsTab("docker")}
-                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                   settingsTab === "docker"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
+                    : "text-muted-foreground hover:text-foreground border border-transparent"
                 }`}
               >
                 Docker
               </button>
               <button
                 onClick={() => setSettingsTab("update")}
-                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                   settingsTab === "update"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
+                    : "text-muted-foreground hover:text-foreground border border-transparent"
                 }`}
               >
                 Update
