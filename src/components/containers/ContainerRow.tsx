@@ -6,10 +6,11 @@ import { useContainerAction } from "../../hooks/useContainers";
 interface ContainerRowProps {
   container: Container;
   onViewLogs: (id: string) => void;
+  onInspect?: (id: string) => void;
   showServiceName?: boolean;
 }
 
-export function ContainerRow({ container, onViewLogs, showServiceName }: ContainerRowProps) {
+export function ContainerRow({ container, onViewLogs, onInspect, showServiceName }: ContainerRowProps) {
   const action = useContainerAction();
   const isRunning = container.state === "running";
   const displayName = showServiceName && container.compose_service
@@ -38,6 +39,7 @@ export function ContainerRow({ container, onViewLogs, showServiceName }: Contain
         )}
         <Button variant="ghost" size="sm" onClick={() => action.mutate({ id: container.id, action: "restart" })} disabled={action.isPending}>Restart</Button>
         <Button variant="ghost" size="sm" onClick={() => onViewLogs(container.id)}>Logs</Button>
+        {onInspect && <Button variant="ghost" size="sm" onClick={() => onInspect(container.id)}>Inspect</Button>}
         <Button variant="ghost" size="sm" className="text-destructive" onClick={() => action.mutate({ id: container.id, action: "remove" })} disabled={action.isPending}>Remove</Button>
       </div>
     </div>

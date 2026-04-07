@@ -10,9 +10,10 @@ interface ComposeGroupProps {
   project: string;
   containers: Container[];
   onViewLogs: (id: string) => void;
+  onInspect?: (id: string) => void;
 }
 
-export function ComposeGroup({ project, containers, onViewLogs }: ComposeGroupProps) {
+export function ComposeGroup({ project, containers, onViewLogs, onInspect }: ComposeGroupProps) {
   const [expanded, setExpanded] = useState(false);
   const action = useContainerAction();
 
@@ -66,7 +67,7 @@ export function ComposeGroup({ project, containers, onViewLogs }: ComposeGroupPr
         <div className="border-t">
           {containers.map((container) => (
             <div key={container.id} className="pl-6">
-              <ContainerRow container={container} onViewLogs={onViewLogs} showServiceName />
+              <ContainerRow container={container} onViewLogs={onViewLogs} onInspect={onInspect} showServiceName />
             </div>
           ))}
         </div>

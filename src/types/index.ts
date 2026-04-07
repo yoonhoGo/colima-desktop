@@ -90,3 +90,48 @@ export interface DockerDaemonSettings {
   insecure_registries: string[];
   registry_mirrors: string[];
 }
+
+export interface ContainerDetail {
+  id: string;
+  name: string;
+  image: string;
+  state: string;
+  status: string;
+  created: string;
+  platform: string;
+  env_vars: string[];
+  ports: PortBinding[];
+  mounts: MountInfo[];
+  networks: NetworkInfo[];
+  cmd: string;
+  entrypoint: string;
+}
+
+export interface PortBinding {
+  container_port: string;
+  host_port: string;
+  protocol: string;
+}
+
+export interface MountInfo {
+  mount_type: string;
+  source: string;
+  destination: string;
+  mode: string;
+}
+
+export interface NetworkInfo {
+  name: string;
+  ip_address: string;
+  gateway: string;
+}
+
+export interface ContainerStats {
+  cpu_percent: string;
+  memory_usage: string;
+  memory_limit: string;
+  memory_percent: string;
+  net_io: string;
+  block_io: string;
+  pids: string;
+}

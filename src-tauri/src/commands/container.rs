@@ -1,5 +1,7 @@
 use crate::cli::executor::CliExecutor;
-use crate::cli::types::{Container, DockerPsEntry};
+use crate::cli::types::{
+    Container, ContainerDetail, ContainerStats, DockerPsEntry, MountInfo, NetworkInfo, PortBinding,
+};
 use tauri::{AppHandle, Emitter};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
@@ -118,4 +120,162 @@ pub async fn stream_container_logs(app: AppHandle, id: String) -> Result<(), Str
     });
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn container_inspect(id: String) -> Result<ContainerDetail, String> {
+    let output = CliExecutor::run(DOCKER, &["inspect", &id]).await?;
+    let parsed: serde_json::Value =
+        serde_json::from_str(&output).map_err(|e| format!("JSON parse error: {}", e))?;
+
+    let item = parsed
+        .as_array()
+        .and_then(|arr| arr.first())
+        .ok_or("Empty inspect result")?;
+
+    let name = item["Name"]
+        .as_str()
+        .unwrap_or("")
+        .trim_start_matches('/')
+        .to_string();
+    let image = item["Config"]["Image"].as_str().unwrap_or("").to_string();
+    let state = item["State"]["Status"].as_str().unwrap_or("").to_string();
+    let started_at = item["State"]["StartedAt"].as_str().unwrap_or("");
+    let status = if state == "running" {
+        format!("Up since {}", started_at)
+    } else {
+        state.clone()
+    };
+    let created = item["Created"].as_str().unwrap_or("").to_string();
+    let platform = item["Platform"].as_str().unwrap_or("").to_string();
+
+    let env_vars = item["Config"]["Env"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let mut ports = Vec::new();
+    if let Some(port_map) = item["NetworkSettings"]["Ports"].as_object() {
+        for (key, bindings) in port_map {
+            let parts: Vec<&str> = key.split('/').collect();
+            let container_port = parts.first().unwrap_or(&"").to_string();
+            let protocol = parts.get(1).unwrap_or(&"tcp").to_string();
+
+            if let Some(arr) = bindings.as_array() {
+                for binding in arr {
+                    ports.push(PortBinding {
+                        container_port: container_port.clone(),
+                        host_port: binding["HostPort"].as_str().unwrap_or("").to_string(),
+                        protocol: protocol.clone(),
+                    });
+                }
+            } else {
+                ports.push(PortBinding {
+                    container_port,
+                    host_port: String::new(),
+                    protocol,
+                });
+            }
+        }
+    }
+
+    let mounts = item["Mounts"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .map(|m| MountInfo {
+                    mount_type: m["Type"].as_str().unwrap_or("").to_string(),
+                    source: m["Source"].as_str().unwrap_or("").to_string(),
+                    destination: m["Destination"].as_str().unwrap_or("").to_string(),
+                    mode: m["Mode"].as_str().unwrap_or("").to_string(),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let mut networks = Vec::new();
+    if let Some(net_map) = item["NetworkSettings"]["Networks"].as_object() {
+        for (net_name, net_val) in net_map {
+            networks.push(NetworkInfo {
+                name: net_name.clone(),
+                ip_address: net_val["IPAddress"].as_str().unwrap_or("").to_string(),
+                gateway: net_val["Gateway"].as_str().unwrap_or("").to_string(),
+            });
+        }
+    }
+
+    let cmd = item["Config"]["Cmd"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str())
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .unwrap_or_default();
+
+    let entrypoint = item["Config"]["Entrypoint"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str())
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .unwrap_or_default();
+
+    Ok(ContainerDetail {
+        id: item["Id"].as_str().unwrap_or("").to_string(),
+        name,
+        image,
+        state,
+        status,
+        created,
+        platform,
+        env_vars,
+        ports,
+        mounts,
+        networks,
+        cmd,
+        entrypoint,
+    })
+}
+
+#[tauri::command]
+pub async fn container_stats(id: String) -> Result<ContainerStats, String> {
+    let output = CliExecutor::run(
+        DOCKER,
+        &[
+            "stats",
+            &id,
+            "--no-stream",
+            "--format",
+            "{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}|{{.NetIO}}|{{.BlockIO}}|{{.PIDs}}",
+        ],
+    )
+    .await?;
+
+    let line = output.trim();
+    let parts: Vec<&str> = line.split('|').collect();
+    if parts.len() < 6 {
+        return Err(format!("Unexpected stats format: {}", line));
+    }
+
+    let mem_parts: Vec<&str> = parts[1].split(" / ").collect();
+    let memory_usage = mem_parts.first().unwrap_or(&"").trim().to_string();
+    let memory_limit = mem_parts.get(1).unwrap_or(&"").trim().to_string();
+
+    Ok(ContainerStats {
+        cpu_percent: parts[0].trim().to_string(),
+        memory_usage,
+        memory_limit,
+        memory_percent: parts[2].trim().to_string(),
+        net_io: parts[3].trim().to_string(),
+        block_io: parts[4].trim().to_string(),
+        pids: parts[5].trim().to_string(),
+    })
 }

@@ -281,3 +281,53 @@ pub struct DnsHostEntry {
     pub hostname: String,
     pub ip: String,
 }
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ContainerDetail {
+    pub id: String,
+    pub name: String,
+    pub image: String,
+    pub state: String,
+    pub status: String,
+    pub created: String,
+    pub platform: String,
+    pub env_vars: Vec<String>,
+    pub ports: Vec<PortBinding>,
+    pub mounts: Vec<MountInfo>,
+    pub networks: Vec<NetworkInfo>,
+    pub cmd: String,
+    pub entrypoint: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct PortBinding {
+    pub container_port: String,
+    pub host_port: String,
+    pub protocol: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct MountInfo {
+    pub mount_type: String,
+    pub source: String,
+    pub destination: String,
+    pub mode: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct NetworkInfo {
+    pub name: String,
+    pub ip_address: String,
+    pub gateway: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ContainerStats {
+    pub cpu_percent: String,
+    pub memory_usage: String,
+    pub memory_limit: String,
+    pub memory_percent: String,
+    pub net_io: String,
+    pub block_io: String,
+    pub pids: String,
+}

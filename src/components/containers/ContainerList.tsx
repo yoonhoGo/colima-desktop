@@ -4,6 +4,7 @@ import { ContainerRow } from "./ContainerRow";
 import { ComposeGroup } from "./ComposeGroup";
 import { ContainerLogs } from "./ContainerLogs";
 import { ContainerRun } from "./ContainerRun";
+import { ContainerDetail } from "./ContainerDetail";
 import { Button } from "@/components/ui/button";
 import type { Container } from "../../types";
 
@@ -19,6 +20,7 @@ export function ContainerList() {
   const prune = usePruneContainers();
   const [filter, setFilter] = useState<Filter>("all");
   const [logsContainerId, setLogsContainerId] = useState<string | null>(null);
+  const [inspectId, setInspectId] = useState<string | null>(null);
 
   const stoppedCount = useMemo(() =>
     containers?.filter((c) => c.state !== "running").length ?? 0,
@@ -53,6 +55,10 @@ export function ContainerList() {
 
     return { composeGroups, standalone };
   }, [filtered]);
+
+  if (inspectId) {
+    return <ContainerDetail containerId={inspectId} onBack={() => setInspectId(null)} />;
+  }
 
   if (logsContainerId) {
     return <ContainerLogs containerId={logsContainerId} onBack={() => setLogsContainerId(null)} />;
@@ -89,10 +95,11 @@ export function ContainerList() {
             project={group.project}
             containers={group.containers}
             onViewLogs={setLogsContainerId}
+            onInspect={setInspectId}
           />
         ))}
         {standalone.map((container) => (
-          <ContainerRow key={container.id} container={container} onViewLogs={setLogsContainerId} />
+          <ContainerRow key={container.id} container={container} onViewLogs={setLogsContainerId} onInspect={setInspectId} />
         ))}
         {composeGroups.length === 0 && standalone.length === 0 && !isLoading && (
           <p className="text-sm text-muted-foreground">No containers found.</p>
