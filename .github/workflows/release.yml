@@ -71,6 +71,7 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
+          key: ${{ matrix.platform }}-${{ matrix.args }}
 
       - name: Sync version from git tag
         run: |
