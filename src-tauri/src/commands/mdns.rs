@@ -5,23 +5,17 @@ use crate::cli::types::{
 };
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 use std::collections::HashMap;
-use std::net::Ipv4Addr;
+use std::net::IpAddr;
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
 
 const DOCKER: &str = "/opt/homebrew/bin/docker";
 
-/// Get the host machine's local (LAN) IPv4 address.
+/// Get the host machine's local (LAN) IP address.
 /// This is the IP that other devices on the network can reach.
-fn get_host_ip() -> Ipv4Addr {
-    local_ip_address::local_ip()
-        .ok()
-        .and_then(|ip| match ip {
-            std::net::IpAddr::V4(v4) => Some(v4),
-            _ => None,
-        })
-        .unwrap_or(Ipv4Addr::LOCALHOST)
+fn get_host_ip() -> IpAddr {
+    local_ip_address::local_ip().unwrap_or(IpAddr::V4(std::net::Ipv4Addr::LOCALHOST))
 }
 
 /// Get the machine's hostname for mDNS, falling back to "colima-host".
