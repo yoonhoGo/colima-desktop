@@ -1,4 +1,4 @@
-import { Box } from "lucide-react";
+import appIcon from "../../assets/app-icon.png";
 
 interface WelcomeStepProps {
   onNext: () => void;
@@ -8,9 +8,7 @@ interface WelcomeStepProps {
 export function WelcomeStep({ onNext, onSkip }: WelcomeStepProps) {
   return (
     <div className="flex flex-col items-center gap-6 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
-        <Box className="h-10 w-10 text-white" />
-      </div>
+      <img src={appIcon} alt="Colima Desktop" className="h-20 w-20 rounded-2xl shadow-lg" />
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold text-foreground">
           Colima Desktop에 오신 것을 환영합니다
