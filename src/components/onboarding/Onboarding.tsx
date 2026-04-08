@@ -59,7 +59,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   return (
     <div className="flex h-screen items-center justify-center">
-      <div className="flex flex-col items-center gap-8">
+      <div className="glass-card flex flex-col items-center gap-8 px-12 py-10">
         <div className={`onboarding-step ${stateClass}`}>
           {step === 0 && <WelcomeStep onNext={handleNext} onSkip={handleSkip} />}
           {step === 1 && <ColimaCheckStep onNext={handleNext} onSkip={handleSkip} />}

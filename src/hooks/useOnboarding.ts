@@ -9,14 +9,6 @@ export function useOnboardingNeeded() {
   });
 }
 
-export function useColimaInstallCheck() {
-  return useQuery({
-    queryKey: ["colima-install-check"],
-    queryFn: api.checkColimaInstalled,
-    enabled: false,
-  });
-}
-
 export function useCompleteOnboarding() {
   const queryClient = useQueryClient();
   return useMutation({

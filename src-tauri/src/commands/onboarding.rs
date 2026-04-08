@@ -40,10 +40,12 @@ pub async fn check_onboarding_needed() -> Result<bool, String> {
 pub async fn complete_onboarding() -> Result<(), String> {
     let config_dir = dirs::config_dir().ok_or("Cannot find config directory")?;
     let app_dir = config_dir.join("colima-desktop");
-    std::fs::create_dir_all(&app_dir)
+    tokio::fs::create_dir_all(&app_dir)
+        .await
         .map_err(|e| format!("Failed to create config dir: {}", e))?;
     let settings_path = app_dir.join("app-settings.json");
-    std::fs::write(&settings_path, "{}")
+    tokio::fs::write(&settings_path, "{}")
+        .await
         .map_err(|e| format!("Failed to write settings: {}", e))?;
     Ok(())
 }
