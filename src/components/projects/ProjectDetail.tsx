@@ -401,11 +401,11 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
                 </div>
               ))}
             </div>
-            {envVars.some((v) => v.source === "command") && (
-              <p className="text-[10px] text-orange-400/80">
-                Command-sourced vars are previews only. Fresh values are fetched on each start.
-              </p>
-            )}
+          )}
+          {envVars.some((v) => v.source === "command") && (
+            <p className="text-[10px] text-orange-400/80">
+              Command-sourced vars are previews only. Fresh values are fetched on each start.
+            </p>
           )}
 
           {/* Add new env var */}
