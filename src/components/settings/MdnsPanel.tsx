@@ -9,16 +9,22 @@ import {
   useMdnsBrowse,
   useMdnsRegisterContainer,
   useMdnsUnregisterService,
+  useMdnsContainerConfigs,
+  useMdnsRemoveContainerConfig,
+  useMdnsSetAutoRegister,
 } from "@/hooks/useMdns";
 import type { MdnsServiceEntry } from "@/types";
 
 export function MdnsPanel() {
   const { data: mdnsState, isLoading } = useMdnsState();
+  const { data: containerConfigs } = useMdnsContainerConfigs();
   const enableMutation = useMdnsEnable();
   const disableMutation = useMdnsDisable();
   const browseMutation = useMdnsBrowse();
   const registerMutation = useMdnsRegisterContainer();
   const unregisterMutation = useMdnsUnregisterService();
+  const removeConfigMutation = useMdnsRemoveContainerConfig();
+  const setAutoRegisterMutation = useMdnsSetAutoRegister();
 
   const [browseType, setBrowseType] = useState("_http._tcp");
   const [discoveredServices, setDiscoveredServices] = useState<MdnsServiceEntry[]>([]);
@@ -28,6 +34,7 @@ export function MdnsPanel() {
   const [regType, setRegType] = useState("_http._tcp");
 
   const enabled = mdnsState?.enabled ?? false;
+  const autoRegister = mdnsState?.auto_register ?? false;
 
   const handleToggle = () => {
     if (enabled) {
@@ -35,6 +42,10 @@ export function MdnsPanel() {
     } else {
       enableMutation.mutate();
     }
+  };
+
+  const handleAutoRegisterToggle = () => {
+    setAutoRegisterMutation.mutate(!autoRegister);
   };
 
   const handleBrowse = () => {
@@ -69,6 +80,8 @@ export function MdnsPanel() {
     );
   }
 
+  const enabledConfigs = containerConfigs?.filter((c) => c.enabled) ?? [];
+
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <h2 className="text-lg font-semibold">mDNS Service Discovery</h2>
@@ -91,11 +104,59 @@ export function MdnsPanel() {
           </p>
         </div>
 
+        {/* Auto-register Toggle */}
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={autoRegister}
+              onChange={handleAutoRegisterToggle}
+              disabled={setAutoRegisterMutation.isPending}
+              className="rounded"
+            />
+            Auto-register containers
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Automatically register running containers with exposed ports as mDNS services.
+            You can also enable mDNS per container from the Containers page.
+          </p>
+        </div>
+
+        {/* Per-container mDNS configs */}
+        {enabledConfigs.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Container mDNS Configurations</label>
+            <div className="space-y-2">
+              {enabledConfigs.map((cfg) => (
+                <div key={cfg.container_id} className="glass-list-item flex items-center gap-2 p-2">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-mono truncate block">
+                      {cfg.container_name}.local
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {cfg.service_type} : {cfg.port}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeConfigMutation.mutate(cfg.container_id)}
+                    disabled={removeConfigMutation.isPending}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {enabled && (
           <>
             {/* Register Container Service */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Register Container Service</label>
+              <label className="text-sm font-medium">Quick Register</label>
               <div className="flex items-center gap-2">
                 <Input
                   placeholder="Container name"
@@ -132,39 +193,44 @@ export function MdnsPanel() {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Register a container as an mDNS service (e.g., _http._tcp, _postgres._tcp).
-              </p>
             </div>
 
             {/* Registered Services */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Registered Services</label>
+              <label className="text-sm font-medium">Active Services</label>
               {(!mdnsState?.registered_services || mdnsState.registered_services.length === 0) ? (
                 <p className="text-xs text-muted-foreground">No services registered.</p>
               ) : (
                 <div className="space-y-2">
-                  {mdnsState.registered_services.map((svc, index) => (
-                    <div key={index} className="glass-list-item flex items-center gap-2 p-2">
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-mono truncate block">
-                          {svc.instance_name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {svc.service_type} : {svc.port}
-                        </span>
+                  {mdnsState.registered_services.map((svc, index) => {
+                    const isAuto = svc.properties.some((p) => p.key === "auto" && p.value === "true");
+                    return (
+                      <div key={index} className="glass-list-item flex items-center gap-2 p-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm font-mono truncate block">
+                              {svc.instance_name}
+                            </span>
+                            {isAuto && (
+                              <span className="text-[10px] text-muted-foreground bg-muted px-1 rounded">auto</span>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {svc.service_type} : {svc.port}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleUnregister(svc.instance_name, svc.service_type)}
+                          disabled={unregisterMutation.isPending}
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleUnregister(svc.instance_name, svc.service_type)}
-                        disabled={unregisterMutation.isPending}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

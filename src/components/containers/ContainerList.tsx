@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useContainers, usePruneContainers } from "../../hooks/useContainers";
+import { useMdnsState, useMdnsContainerConfigs, useMdnsSyncContainers } from "../../hooks/useMdns";
 import { ContainerRow } from "./ContainerRow";
 import { ComposeGroup } from "./ComposeGroup";
 import { ContainerLogs } from "./ContainerLogs";
@@ -7,7 +8,7 @@ import { ContainerRun } from "./ContainerRun";
 import { ContainerDetail } from "./ContainerDetail";
 import { DevContainerTab } from "./DevContainerTab";
 import { Button } from "@/components/ui/button";
-import type { Container } from "../../types";
+import type { Container, ContainerMdnsConfig } from "../../types";
 
 type Filter = "all" | "running" | "stopped";
 type Tab = "containers" | "devcontainers";
@@ -20,10 +21,27 @@ interface ComposeGroupData {
 export function ContainerList() {
   const { data: containers, isLoading, error } = useContainers();
   const prune = usePruneContainers();
+  const { data: mdnsState } = useMdnsState();
+  const { data: mdnsConfigs } = useMdnsContainerConfigs();
   const [filter, setFilter] = useState<Filter>("all");
   const [tab, setTab] = useState<Tab>("containers");
   const [logsContainerId, setLogsContainerId] = useState<string | null>(null);
   const [inspectId, setInspectId] = useState<string | null>(null);
+
+  // Trigger mDNS sync alongside container polling
+  useMdnsSyncContainers();
+
+  const mdnsEnabled = mdnsState?.enabled ?? false;
+
+  const mdnsConfigMap = useMemo(() => {
+    const map = new Map<string, ContainerMdnsConfig>();
+    if (mdnsConfigs) {
+      for (const c of mdnsConfigs) {
+        map.set(c.container_id, c);
+      }
+    }
+    return map;
+  }, [mdnsConfigs]);
 
   const stoppedCount = useMemo(() =>
     containers?.filter((c) => c.state !== "running").length ?? 0,
@@ -126,10 +144,19 @@ export function ContainerList() {
                 containers={group.containers}
                 onViewLogs={setLogsContainerId}
                 onInspect={setInspectId}
+                mdnsConfigMap={mdnsConfigMap}
+                mdnsEnabled={mdnsEnabled}
               />
             ))}
             {standalone.map((container) => (
-              <ContainerRow key={container.id} container={container} onViewLogs={setLogsContainerId} onInspect={setInspectId} />
+              <ContainerRow
+                key={container.id}
+                container={container}
+                onViewLogs={setLogsContainerId}
+                onInspect={setInspectId}
+                mdnsConfig={mdnsConfigMap.get(container.id)}
+                mdnsEnabled={mdnsEnabled}
+              />
             ))}
             {composeGroups.length === 0 && standalone.length === 0 && !isLoading && (
               <p className="text-sm text-muted-foreground">No containers found.</p>

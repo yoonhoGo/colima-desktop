@@ -30,12 +30,8 @@ export function useMdnsDisable() {
 }
 
 export function useMdnsBrowse() {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (serviceType: string) => api.mdnsBrowse(serviceType),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mdns-state"] });
-    },
   });
 }
 
@@ -58,5 +54,59 @@ export function useMdnsUnregisterService() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mdns-state"] });
     },
+  });
+}
+
+export function useMdnsContainerConfigs() {
+  return useQuery({
+    queryKey: ["mdns-container-configs"],
+    queryFn: api.mdnsGetContainerConfigs,
+    refetchInterval: 5000,
+  });
+}
+
+export function useMdnsSetContainerConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: {
+      containerId: string;
+      containerName: string;
+      enabled: boolean;
+      serviceType: string;
+      port: number;
+    }) => api.mdnsSetContainerConfig(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mdns-container-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["mdns-state"] });
+    },
+  });
+}
+
+export function useMdnsRemoveContainerConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (containerId: string) => api.mdnsRemoveContainerConfig(containerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mdns-container-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["mdns-state"] });
+    },
+  });
+}
+
+export function useMdnsSetAutoRegister() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (autoRegister: boolean) => api.mdnsSetAutoRegister(autoRegister),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mdns-state"] });
+    },
+  });
+}
+
+export function useMdnsSyncContainers() {
+  return useQuery({
+    queryKey: ["mdns-sync"],
+    queryFn: api.mdnsSyncContainers,
+    refetchInterval: 5000,
   });
 }

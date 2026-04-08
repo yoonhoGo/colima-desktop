@@ -64,6 +64,11 @@ pub fn run() {
             commands::mdns::mdns_unregister_service,
             commands::mdns::mdns_browse,
             commands::mdns::mdns_register_container,
+            commands::mdns::mdns_get_container_configs,
+            commands::mdns::mdns_set_container_config,
+            commands::mdns::mdns_remove_container_config,
+            commands::mdns::mdns_set_auto_register,
+            commands::mdns::mdns_sync_containers,
         ])
         .setup(|app| {
             tray::create_tray(app)?;

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats, ColimaVersion, VersionCheck, DevContainerProject, DevContainerConfig, MdnsState, MdnsServiceEntry, MdnsProperty } from "../types";
+import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats, ColimaVersion, VersionCheck, DevContainerProject, DevContainerConfig, MdnsState, MdnsServiceEntry, MdnsProperty, ContainerMdnsConfig } from "../types";
 
 export const api = {
   colimaStatus: () => invoke<ColimaStatus>("colima_status"),
@@ -84,4 +84,17 @@ export const api = {
     port: number;
     serviceType?: string;
   }) => invoke<void>("mdns_register_container", params),
+  mdnsGetContainerConfigs: () => invoke<ContainerMdnsConfig[]>("mdns_get_container_configs"),
+  mdnsSetContainerConfig: (params: {
+    containerId: string;
+    containerName: string;
+    enabled: boolean;
+    serviceType: string;
+    port: number;
+  }) => invoke<void>("mdns_set_container_config", params),
+  mdnsRemoveContainerConfig: (containerId: string) =>
+    invoke<void>("mdns_remove_container_config", { containerId }),
+  mdnsSetAutoRegister: (autoRegister: boolean) =>
+    invoke<void>("mdns_set_auto_register", { autoRegister }),
+  mdnsSyncContainers: () => invoke<void>("mdns_sync_containers"),
 };

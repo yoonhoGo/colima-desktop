@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, ChevronDown } from "lucide-react";
-import type { Container } from "../../types";
+import type { Container, ContainerMdnsConfig } from "../../types";
 import { useContainerAction } from "../../hooks/useContainers";
 import { ContainerRow } from "./ContainerRow";
 
@@ -11,9 +11,11 @@ interface ComposeGroupProps {
   containers: Container[];
   onViewLogs: (id: string) => void;
   onInspect?: (id: string) => void;
+  mdnsConfigMap?: Map<string, ContainerMdnsConfig>;
+  mdnsEnabled?: boolean;
 }
 
-export function ComposeGroup({ project, containers, onViewLogs, onInspect }: ComposeGroupProps) {
+export function ComposeGroup({ project, containers, onViewLogs, onInspect, mdnsConfigMap, mdnsEnabled }: ComposeGroupProps) {
   const [expanded, setExpanded] = useState(false);
   const action = useContainerAction();
 
@@ -67,7 +69,14 @@ export function ComposeGroup({ project, containers, onViewLogs, onInspect }: Com
         <div className="border-t border-[var(--glass-border)] px-2 pb-2 pt-1 space-y-1">
           {containers.map((container) => (
             <div key={container.id} className="pl-4">
-              <ContainerRow container={container} onViewLogs={onViewLogs} onInspect={onInspect} showServiceName />
+              <ContainerRow
+                container={container}
+                onViewLogs={onViewLogs}
+                onInspect={onInspect}
+                showServiceName
+                mdnsConfig={mdnsConfigMap?.get(container.id)}
+                mdnsEnabled={mdnsEnabled}
+              />
             </div>
           ))}
         </div>

@@ -408,6 +408,22 @@ pub struct MdnsRegistration {
 #[derive(Debug, Serialize, Clone)]
 pub struct MdnsState {
     pub enabled: bool,
+    pub auto_register: bool,
     pub registered_services: Vec<MdnsRegistration>,
     pub discovered_services: Vec<MdnsServiceEntry>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ContainerMdnsConfig {
+    pub container_id: String,
+    pub container_name: String,
+    pub enabled: bool,
+    pub service_type: String,
+    pub port: u16,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct MdnsPersistentConfig {
+    pub auto_register: bool,
+    pub containers: Vec<ContainerMdnsConfig>,
 }

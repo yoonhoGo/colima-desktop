@@ -191,6 +191,15 @@ export interface MdnsRegistration {
 
 export interface MdnsState {
   enabled: boolean;
+  auto_register: boolean;
   registered_services: MdnsRegistration[];
   discovered_services: MdnsServiceEntry[];
+}
+
+export interface ContainerMdnsConfig {
+  container_id: string;
+  container_name: string;
+  enabled: boolean;
+  service_type: string;
+  port: number;
 }
