@@ -5,11 +5,32 @@ use crate::cli::types::{
 };
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 use std::collections::HashMap;
+use std::net::Ipv4Addr;
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
 
 const DOCKER: &str = "/opt/homebrew/bin/docker";
+
+/// Get the host machine's local (LAN) IPv4 address.
+/// This is the IP that other devices on the network can reach.
+fn get_host_ip() -> Ipv4Addr {
+    local_ip_address::local_ip()
+        .ok()
+        .and_then(|ip| match ip {
+            std::net::IpAddr::V4(v4) => Some(v4),
+            _ => None,
+        })
+        .unwrap_or(Ipv4Addr::LOCALHOST)
+}
+
+/// Get the machine's hostname for mDNS, falling back to "colima-host".
+fn get_mdns_hostname() -> String {
+    hostname::get()
+        .ok()
+        .and_then(|h| h.into_string().ok())
+        .unwrap_or_else(|| "colima-host".to_string())
+}
 
 pub struct MdnsManager {
     daemon: ServiceDaemon,
@@ -34,7 +55,12 @@ impl MdnsManager {
         properties: &[MdnsProperty],
     ) -> Result<(), String> {
         let stype = normalize_service_type(service_type);
-        let hostname = format!("{}.local.", instance_name);
+
+        // Use the machine's actual hostname so the A record resolves correctly
+        let hostname = format!("{}.local.", get_mdns_hostname());
+
+        // Get the host's LAN IP so mDNS responses include an A record
+        let host_ip = get_host_ip();
 
         let mut prop_map: HashMap<String, String> = HashMap::new();
         for p in properties {
@@ -46,8 +72,9 @@ impl MdnsManager {
             .map(|(k, v)| (k.as_str(), v.as_str()))
             .collect();
 
-        let service = ServiceInfo::new(&stype, instance_name, &hostname, (), port, &props[..])
-            .map_err(|e| format!("Failed to create service info: {}", e))?;
+        let service =
+            ServiceInfo::new(&stype, instance_name, &hostname, host_ip, port, &props[..])
+                .map_err(|e| format!("Failed to create service info: {}", e))?;
 
         self.daemon
             .register(service)
@@ -361,9 +388,7 @@ pub async fn mdns_remove_container_config(
 // --- Auto-register ---
 
 #[tauri::command]
-pub async fn mdns_set_auto_register(
-    auto_register: bool,
-) -> Result<(), String> {
+pub async fn mdns_set_auto_register(auto_register: bool) -> Result<(), String> {
     let mut config = load_config().await;
     config.auto_register = auto_register;
     save_config(&config).await
@@ -372,9 +397,7 @@ pub async fn mdns_set_auto_register(
 /// Sync mDNS registrations with currently running containers.
 /// Called periodically from the frontend alongside container list polling.
 #[tauri::command]
-pub async fn mdns_sync_containers(
-    state: State<'_, MdnsManagerState>,
-) -> Result<(), String> {
+pub async fn mdns_sync_containers(state: State<'_, MdnsManagerState>) -> Result<(), String> {
     let mut guard = state.lock().await;
     let manager = match guard.as_mut() {
         Some(m) => m,
@@ -384,20 +407,14 @@ pub async fn mdns_sync_containers(
     let config = load_config().await;
 
     // Get running containers
-    let entries: Vec<DockerPsEntry> = match CliExecutor::run_json_lines(
-        DOCKER,
-        &["ps", "--format", "json"],
-    )
-    .await
-    {
-        Ok(e) => e,
-        Err(_) => return Ok(()), // Docker not available, skip
-    };
+    let entries: Vec<DockerPsEntry> =
+        match CliExecutor::run_json_lines(DOCKER, &["ps", "--format", "json"]).await {
+            Ok(e) => e,
+            Err(_) => return Ok(()), // Docker not available, skip
+        };
 
-    let running_names: HashMap<String, &DockerPsEntry> = entries
-        .iter()
-        .map(|e| (e.names.clone(), e))
-        .collect();
+    let running_names: HashMap<String, &DockerPsEntry> =
+        entries.iter().map(|e| (e.names.clone(), e)).collect();
 
     // Register containers that are configured + running
     for cc in &config.containers {
@@ -466,12 +483,8 @@ pub async fn mdns_sync_containers(
                             value: "true".to_string(),
                         },
                     ];
-                    let _ = manager.register_service_inner(
-                        &entry.names,
-                        "_http._tcp",
-                        port,
-                        &props,
-                    );
+                    let _ =
+                        manager.register_service_inner(&entry.names, "_http._tcp", port, &props);
                 }
             }
         }
@@ -480,7 +493,11 @@ pub async fn mdns_sync_containers(
         let auto_registered: Vec<String> = manager
             .registered
             .iter()
-            .filter(|r| r.properties.iter().any(|p| p.key == "auto" && p.value == "true"))
+            .filter(|r| {
+                r.properties
+                    .iter()
+                    .any(|p| p.key == "auto" && p.value == "true")
+            })
             .map(|r| r.instance_name.clone())
             .collect();
 
