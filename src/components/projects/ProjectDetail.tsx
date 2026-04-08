@@ -85,7 +85,7 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
       name: project.name,
       workspace_path: project.workspace_path,
       project_type: project.project_type,
-      env_vars: envVars,
+      env_vars: envVars.filter((v) => v.source !== "command"),
       dotenv_path: dotenvPath || null,
       env_command: envCommand || null,
       watch_mode: watchMode,
@@ -366,11 +366,19 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
               {envVars.map((v, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2 rounded-md bg-muted/20 px-2 py-1"
+                  className={`flex items-center gap-2 rounded-md px-2 py-1 ${
+                    v.source === "command"
+                      ? "bg-orange-500/5 border border-orange-500/10"
+                      : "bg-muted/20"
+                  }`}
                 >
                   <Badge
                     variant="outline"
-                    className="text-[9px] px-1 shrink-0"
+                    className={`text-[9px] px-1 shrink-0 ${
+                      v.source === "command"
+                        ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                        : ""
+                    }`}
                   >
                     {v.source}
                   </Badge>
@@ -378,19 +386,26 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
                     {v.key}
                   </code>
                   <code className="text-[11px] font-mono truncate flex-1 text-muted-foreground">
-                    {v.value}
+                    {v.source === "command" ? "••••••••" : v.value}
                   </code>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 shrink-0"
-                    onClick={() => handleRemoveEnvVar(i)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  {v.source !== "command" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 shrink-0"
+                      onClick={() => handleRemoveEnvVar(i)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
+            {envVars.some((v) => v.source === "command") && (
+              <p className="text-[10px] text-orange-400/80">
+                Command-sourced vars are previews only. Fresh values are fetched on each start.
+              </p>
+            )}
           )}
 
           {/* Add new env var */}

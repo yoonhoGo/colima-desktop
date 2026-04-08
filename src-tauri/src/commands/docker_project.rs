@@ -335,7 +335,7 @@ async fn stop_project_containers(project: &DockerProject) -> Result<(), String> 
     Ok(())
 }
 
-fn collect_env_args(project: &DockerProject) -> Vec<String> {
+async fn collect_env_args(project: &DockerProject, app: &AppHandle, event_name: &str) -> Result<Vec<String>, String> {
     let mut env_args = Vec::new();
 
     // Load dotenv file if specified
@@ -361,13 +361,51 @@ fn collect_env_args(project: &DockerProject) -> Vec<String> {
         }
     }
 
-    // Add manual env vars (these override dotenv)
+    // Run env_command if specified — fetch fresh secrets every time
+    if let Some(ref cmd) = project.env_command {
+        if !cmd.trim().is_empty() {
+            let _ = app.emit(event_name, format!("Fetching env vars: {}", cmd));
+            let output = Command::new("sh")
+                .args(["-c", cmd])
+                .current_dir(&project.workspace_path)
+                .env("DOCKER_HOST", docker_host())
+                .output()
+                .await
+                .map_err(|e| format!("env_command failed to execute: {}", e))?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let _ = app.emit(event_name, format!("env_command failed: {}", stderr.trim()));
+                return Err(format!("env_command failed: {}", stderr.trim()));
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let mut count = 0u32;
+            for line in stdout.lines() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                if let Some(eq_pos) = line.find('=') {
+                    let key = line[..eq_pos].trim();
+                    if !key.is_empty() {
+                        env_args.push("-e".to_string());
+                        env_args.push(line.to_string());
+                        count += 1;
+                    }
+                }
+            }
+            let _ = app.emit(event_name, format!("Loaded {} env vars from command", count));
+        }
+    }
+
+    // Add manual env vars (these override dotenv and command)
     for var in &project.env_vars {
         env_args.push("-e".to_string());
         env_args.push(format!("{}={}", var.key, var.value));
     }
 
-    env_args
+    Ok(env_args)
 }
 
 #[tauri::command]
@@ -412,6 +450,34 @@ async fn compose_up(
             args.extend(["--env-file".to_string(), full_path]);
         }
     }
+
+    // Collect env vars (from env_command + manual) into a temp env file for compose
+    let collected = collect_env_args(project, app, event_name).await?;
+    let _temp_env_file = if !collected.is_empty() {
+        // collected is ["-e", "KEY=VALUE", "-e", "KEY=VALUE", ...]
+        let mut lines = Vec::new();
+        let mut iter = collected.iter();
+        while let Some(flag) = iter.next() {
+            if flag == "-e" {
+                if let Some(kv) = iter.next() {
+                    lines.push(kv.clone());
+                }
+            }
+        }
+        if !lines.is_empty() {
+            let temp_dir = tempfile::tempdir()
+                .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+            let temp_path = temp_dir.path().join(".env.colima-project");
+            std::fs::write(&temp_path, lines.join("\n"))
+                .map_err(|e| format!("Failed to write temp env file: {}", e))?;
+            args.extend(["--env-file".to_string(), temp_path.to_string_lossy().to_string()]);
+            Some(temp_dir) // keep alive until compose reads it
+        } else {
+            None
+        }
+    } else {
+        None
+    };
 
     args.push("up".to_string());
     args.push("-d".to_string());
@@ -513,7 +579,7 @@ async fn dockerfile_up(
     ];
 
     // Add env vars
-    run_args.extend(collect_env_args(project));
+    run_args.extend(collect_env_args(project, app, event_name).await?);
 
     // Add debug port if enabled
     if project.remote_debug {
