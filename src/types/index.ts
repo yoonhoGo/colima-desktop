@@ -167,3 +167,8 @@ export interface DevContainerConfig {
   forward_ports: number[];
   remote_user: string;
 }
+
+export interface ColimaInstallCheck {
+  installed: boolean;
+  path: string | null;
+}
