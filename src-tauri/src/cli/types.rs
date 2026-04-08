@@ -380,3 +380,94 @@ pub struct DevContainerReadConfig {
     pub forward_ports: Vec<u16>,
     pub remote_user: String,
 }
+
+// Docker Project Execution types
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EnvVarEntry {
+    pub key: String,
+    pub value: String,
+    pub source: String, // "manual" | "dotenv" | "api"
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DockerProject {
+    pub id: String,
+    pub name: String,
+    pub workspace_path: String,
+    pub project_type: String, // "dockerfile" | "compose" | "devcontainer"
+    #[serde(default)]
+    pub env_vars: Vec<EnvVarEntry>,
+    #[serde(default)]
+    pub dotenv_path: Option<String>,
+    #[serde(default)]
+    pub watch_mode: bool,
+    #[serde(default)]
+    pub remote_debug: bool,
+    #[serde(default = "default_debug_port")]
+    pub debug_port: u16,
+    #[serde(default)]
+    pub compose_file: Option<String>,
+    #[serde(default)]
+    pub dockerfile: Option<String>,
+    #[serde(default)]
+    pub service_name: Option<String>,
+}
+
+fn default_debug_port() -> u16 {
+    9229
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct DockerProjectWithStatus {
+    pub id: String,
+    pub name: String,
+    pub workspace_path: String,
+    pub project_type: String,
+    pub env_vars: Vec<EnvVarEntry>,
+    pub dotenv_path: Option<String>,
+    pub watch_mode: bool,
+    pub remote_debug: bool,
+    pub debug_port: u16,
+    pub compose_file: Option<String>,
+    pub dockerfile: Option<String>,
+    pub service_name: Option<String>,
+    pub status: String,
+    pub container_ids: Vec<String>,
+}
+
+impl DockerProject {
+    pub fn with_status(self, status: String, container_ids: Vec<String>) -> DockerProjectWithStatus {
+        DockerProjectWithStatus {
+            id: self.id,
+            name: self.name,
+            workspace_path: self.workspace_path,
+            project_type: self.project_type,
+            env_vars: self.env_vars,
+            dotenv_path: self.dotenv_path,
+            watch_mode: self.watch_mode,
+            remote_debug: self.remote_debug,
+            debug_port: self.debug_port,
+            compose_file: self.compose_file,
+            dockerfile: self.dockerfile,
+            service_name: self.service_name,
+            status,
+            container_ids,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DockerProjectsConfig {
+    pub projects: Vec<DockerProject>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ProjectTypeDetection {
+    pub has_dockerfile: bool,
+    pub has_compose: bool,
+    pub has_devcontainer: bool,
+    pub compose_files: Vec<String>,
+    pub dockerfiles: Vec<String>,
+    pub dotenv_files: Vec<String>,
+}

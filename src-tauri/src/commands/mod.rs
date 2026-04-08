@@ -1,5 +1,6 @@
 pub mod colima;
 pub mod container;
+pub mod docker_project;
 pub mod docker_settings;
 pub mod image;
 pub mod mounts;

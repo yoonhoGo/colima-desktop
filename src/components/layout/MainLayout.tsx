@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { ContainerList } from "../containers/ContainerList";
+import { ProjectList } from "../projects/ProjectList";
 import { ImageList } from "../images/ImageList";
 import { VolumeList } from "../volumes/VolumeList";
 import { NetworkList } from "../networks/NetworkList";
@@ -10,7 +11,7 @@ import { NetworkSettingsPanel } from "../settings/NetworkSettingsPanel";
 import { DockerSettingsPanel } from "../settings/DockerSettingsPanel";
 import { UpdatePanel } from "../settings/UpdatePanel";
 
-type Page = "containers" | "images" | "volumes" | "networks" | "settings";
+type Page = "containers" | "projects" | "images" | "volumes" | "networks" | "settings";
 type SettingsTab = "vm" | "mounts" | "network" | "docker" | "update";
 
 export function MainLayout() {
@@ -22,6 +23,7 @@ export function MainLayout() {
       <Sidebar activePage={activePage} onPageChange={setActivePage} />
       <main className="flex-1 overflow-auto p-4">
         {activePage === "containers" && <ContainerList />}
+        {activePage === "projects" && <ProjectList />}
         {activePage === "images" && <ImageList />}
         {activePage === "volumes" && <VolumeList />}
         {activePage === "networks" && <NetworkList />}
