@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import {
   useToggleGlobalEnvVar,
   useReimportDotenv,
 } from "../../hooks/useEnvStore";
+import { api } from "../../lib/tauri";
 
 interface GlobalEnvVarTableProps {
   profile: EnvProfile;
@@ -20,7 +21,7 @@ export function GlobalEnvVarTable({ profile }: GlobalEnvVarTableProps) {
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
   const [newSecret, setNewSecret] = useState(false);
-  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
+  const [revealedKeys, setRevealedKeys] = useState<Map<string, string>>(new Map());
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [editSecret, setEditSecret] = useState(false);
@@ -65,10 +66,19 @@ export function GlobalEnvVarTable({ profile }: GlobalEnvVarTableProps) {
     removeEnvVar.mutate({ profileId: profile.id, key, source });
   };
 
-  const startEdit = (v: GlobalEnvVar) => {
+  const startEdit = async (v: GlobalEnvVar) => {
     setEditingKey(v.key);
-    setEditValue(v.value);
     setEditSecret(v.secret);
+    if (v.secret) {
+      try {
+        const decrypted = await api.decryptGlobalEnvSecret(profile.id, v.key);
+        setEditValue(decrypted);
+      } catch {
+        setEditValue("");
+      }
+    } else {
+      setEditValue(v.value);
+    }
   };
 
   const saveEdit = (key: string) => {
@@ -94,14 +104,22 @@ export function GlobalEnvVarTable({ profile }: GlobalEnvVarTableProps) {
     toggleEnvVar.mutate({ profileId: profile.id, key, source, enabled });
   };
 
-  const toggleReveal = (key: string) => {
-    setRevealedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+  const toggleReveal = useCallback(async (key: string) => {
+    if (revealedKeys.has(key)) {
+      setRevealedKeys((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+    } else {
+      try {
+        const decrypted = await api.decryptGlobalEnvSecret(profile.id, key);
+        setRevealedKeys((prev) => new Map(prev).set(key, decrypted));
+      } catch {
+        setRevealedKeys((prev) => new Map(prev).set(key, "[decrypt error]"));
+      }
+    }
+  }, [revealedKeys, profile.id]);
 
   // Collect unique dotenv source files for reimport
   const dotenvSources = [...new Set(
@@ -228,7 +246,7 @@ export function GlobalEnvVarTable({ profile }: GlobalEnvVarTableProps) {
                       onClick={() => v.source === "manual" && startEdit(v)}
                       title={v.source === "manual" ? "Click to edit" : undefined}
                     >
-                      {v.secret && !revealedKeys.has(v.key) ? "••••••••" : v.value}
+                      {v.secret && !revealedKeys.has(v.key) ? "••••••••" : (revealedKeys.get(v.key) ?? v.value)}
                     </code>
                   </>
                 )}

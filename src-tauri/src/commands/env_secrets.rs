@@ -1,11 +1,13 @@
 use crate::cli::types::{EnvVarEntry, InfisicalConfig, Project, ProjectWithStatus};
 use crate::commands::project::{find_project, get_project_status, load_projects, save_projects};
+use crate::crypto;
 use std::io::Write;
 use tokio::process::Command;
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 /// Save updated project back to disk, then return it with live status.
+/// Secret values are masked in the returned ProjectWithStatus.
 async fn save_and_status(mut projects: Vec<Project>, project: Project) -> Result<ProjectWithStatus, String> {
     let idx = projects
         .iter()
@@ -13,7 +15,36 @@ async fn save_and_status(mut projects: Vec<Project>, project: Project) -> Result
         .ok_or_else(|| "Project not found".to_string())?;
     projects[idx] = project.clone();
     save_projects(&projects)?;
-    Ok(get_project_status(project).await)
+    Ok(mask_project_secrets(get_project_status(project).await))
+}
+
+// ─── Encryption Helpers ─────────────────────────────────────────────────────
+
+/// Encrypt an EnvVarEntry's value if it is marked as secret.
+fn encrypt_entry_if_secret(mut entry: EnvVarEntry) -> Result<EnvVarEntry, String> {
+    if entry.secret {
+        entry.value = crypto::ensure_encrypted(&entry.value)?;
+    }
+    Ok(entry)
+}
+
+/// Decrypt an EnvVarEntry's value if it is marked as secret and encrypted.
+#[allow(dead_code)]
+pub fn decrypt_entry_if_secret(mut entry: EnvVarEntry) -> Result<EnvVarEntry, String> {
+    if entry.secret && crypto::is_encrypted(&entry.value) {
+        entry.value = crypto::decrypt(&entry.value)?;
+    }
+    Ok(entry)
+}
+
+/// Mask secret values in ProjectWithStatus for frontend display.
+fn mask_project_secrets(mut pws: ProjectWithStatus) -> ProjectWithStatus {
+    for var in &mut pws.env_vars {
+        if var.secret {
+            var.value = "••••••••".to_string();
+        }
+    }
+    pws
 }
 
 // ─── Profile Management ───────────────────────────────────────────────────────
@@ -83,6 +114,9 @@ pub async fn set_env_var(project_id: String, entry: EnvVarEntry) -> Result<Proje
     let projects = load_projects()?;
     let mut project = find_project(&projects, &project_id)?;
 
+    // Encrypt secret values before storing
+    let entry = encrypt_entry_if_secret(entry)?;
+
     // Upsert: find by key + profile
     if let Some(existing) = project
         .env_vars
@@ -122,6 +156,8 @@ pub async fn bulk_import_env(
 
     for mut entry in entries {
         entry.profile = profile.clone();
+        // Encrypt secret values before storing
+        let entry = encrypt_entry_if_secret(entry)?;
         if let Some(existing) = project
             .env_vars
             .iter_mut()
@@ -216,7 +252,12 @@ pub async fn export_profile_to_dotenv(
         .map_err(|e| format!("Failed to create .env file: {}", e))?;
 
     for entry in filtered {
-        writeln!(file, "{}={}", entry.key, entry.value)
+        let value = if entry.secret && crypto::is_encrypted(&entry.value) {
+            crypto::decrypt(&entry.value)?
+        } else {
+            entry.value.clone()
+        };
+        writeln!(file, "{}={}", entry.key, value)
             .map_err(|e| format!("Failed to write to .env file: {}", e))?;
     }
 
@@ -296,14 +337,18 @@ pub async fn sync_infisical(project_id: String) -> Result<Vec<EnvVarEntry>, Stri
 
     let new_entries: Vec<EnvVarEntry> = parsed
         .into_iter()
-        .map(|(key, value)| EnvVarEntry {
-            key,
-            value,
-            source: "infisical".to_string(),
-            secret: true,
-            profile: active.clone(),
+        .map(|(key, value)| {
+            let encrypted_value = crypto::encrypt(&value)
+                .map_err(|e| format!("Failed to encrypt secret '{}': {}", key, e))?;
+            Ok(EnvVarEntry {
+                key,
+                value: encrypted_value,
+                source: "infisical".to_string(),
+                secret: true,
+                profile: active.clone(),
+            })
         })
-        .collect();
+        .collect::<Result<Vec<_>, String>>()?;
 
     // Replace old infisical entries for this profile
     project.env_vars.retain(|e| !(e.source == "infisical" && e.profile == active));
@@ -317,7 +362,11 @@ pub async fn sync_infisical(project_id: String) -> Result<Vec<EnvVarEntry>, Stri
     updated_projects[idx] = project;
     save_projects(&updated_projects)?;
 
-    Ok(new_entries)
+    // Return masked entries to frontend
+    Ok(new_entries.into_iter().map(|mut e| {
+        if e.secret { e.value = "••••••••".to_string(); }
+        e
+    }).collect())
 }
 
 #[tauri::command]
@@ -387,10 +436,15 @@ pub fn prepare_secrets_for_compose(project: &Project) -> Result<Option<String>, 
     std::fs::create_dir_all(&secrets_dir)
         .map_err(|e| format!("Failed to create .secrets/ directory: {}", e))?;
 
-    // Write each secret to .secrets/{key}
+    // Write each secret to .secrets/{key} — decrypt in-memory before writing
     for entry in &secrets {
         let secret_file = secrets_dir.join(&entry.key);
-        std::fs::write(&secret_file, &entry.value)
+        let decrypted = if crypto::is_encrypted(&entry.value) {
+            crypto::decrypt(&entry.value)?
+        } else {
+            entry.value.clone()
+        };
+        std::fs::write(&secret_file, &decrypted)
             .map_err(|e| format!("Failed to write secret '{}': {}", entry.key, e))?;
     }
 
@@ -435,11 +489,16 @@ pub fn prepare_secrets_for_compose(project: &Project) -> Result<Option<String>, 
         }
     }
 
-    // All vars (both secret and non-secret) go into environment
+    // All vars (both secret and non-secret) go into environment — decrypt secrets in-memory
     if !secrets.is_empty() || !env_vars.is_empty() {
         yaml.push_str("    environment:\n");
         for entry in &secrets {
-            yaml.push_str(&format!("      - {}={}\n", entry.key, entry.value));
+            let decrypted = if crypto::is_encrypted(&entry.value) {
+                crypto::decrypt(&entry.value)?
+            } else {
+                entry.value.clone()
+            };
+            yaml.push_str(&format!("      - {}={}\n", entry.key, decrypted));
         }
         for entry in &env_vars {
             yaml.push_str(&format!("      - {}={}\n", entry.key, entry.value));

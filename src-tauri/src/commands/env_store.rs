@@ -1,4 +1,5 @@
 use crate::cli::types::{EnvProfile, EnvStoreConfig, GlobalEnvVar, InfisicalConfig};
+use crate::crypto;
 use tokio::process::Command;
 
 fn store_path() -> Result<std::path::PathBuf, String> {
@@ -49,7 +50,7 @@ fn find_profile_mut<'a>(store: &'a mut EnvStoreConfig, profile_id: &str) -> Resu
 #[tauri::command]
 pub async fn list_env_profiles() -> Result<Vec<EnvProfile>, String> {
     let store = load_store()?;
-    Ok(store.profiles)
+    Ok(store.profiles.into_iter().map(mask_profile_secrets).collect())
 }
 
 #[tauri::command]
@@ -68,9 +69,10 @@ pub async fn create_env_profile(name: String) -> Result<EnvProfile, String> {
         env_vars: Vec::new(),
         infisical_config: None,
     };
-    store.profiles.push(profile.clone());
+    let result = profile.clone();
+    store.profiles.push(profile);
     save_store(&store)?;
-    Ok(profile)
+    Ok(mask_profile_secrets(result))
 }
 
 #[tauri::command]
@@ -101,7 +103,7 @@ pub async fn rename_env_profile(profile_id: String, new_name: String) -> Result<
         return Err("Cannot rename the 'default' profile".to_string());
     }
     profile.name = new_name;
-    let result = profile.clone();
+    let result = mask_profile_secrets(profile.clone());
     save_store(&store)?;
     Ok(result)
 }
@@ -112,6 +114,9 @@ pub async fn rename_env_profile(profile_id: String, new_name: String) -> Result<
 pub async fn add_global_env_var(profile_id: String, entry: GlobalEnvVar) -> Result<EnvProfile, String> {
     let mut store = load_store()?;
     let profile = find_profile_mut(&mut store, &profile_id)?;
+
+    // Encrypt secret values before storing
+    let entry = encrypt_global_var_if_secret(entry)?;
 
     if entry.source == "manual" {
         if let Some(existing) = profile.env_vars.iter_mut()
@@ -130,7 +135,7 @@ pub async fn add_global_env_var(profile_id: String, entry: GlobalEnvVar) -> Resu
         profile.env_vars.push(entry);
     }
 
-    let result = profile.clone();
+    let result = mask_profile_secrets(profile.clone());
     save_store(&store)?;
     Ok(result)
 }
@@ -140,7 +145,7 @@ pub async fn remove_global_env_var(profile_id: String, key: String, source: Stri
     let mut store = load_store()?;
     let profile = find_profile_mut(&mut store, &profile_id)?;
     profile.env_vars.retain(|e| !(e.key == key && e.source == source));
-    let result = profile.clone();
+    let result = mask_profile_secrets(profile.clone());
     save_store(&store)?;
     Ok(result)
 }
@@ -164,7 +169,7 @@ pub async fn toggle_global_env_var(profile_id: String, key: String, source: Stri
         var.enabled = enabled;
     }
 
-    let result = profile.clone();
+    let result = mask_profile_secrets(profile.clone());
     save_store(&store)?;
     Ok(result)
 }
@@ -218,7 +223,7 @@ pub async fn import_dotenv_to_profile(profile_id: String, file_path: String) -> 
         });
     }
 
-    let result = profile.clone();
+    let result = mask_profile_secrets(profile.clone());
     save_store(&store)?;
     Ok(result)
 }
@@ -235,7 +240,7 @@ pub async fn configure_profile_infisical(profile_id: String, config: InfisicalCo
     let mut store = load_store()?;
     let profile = find_profile_mut(&mut store, &profile_id)?;
     profile.infisical_config = Some(config);
-    let result = profile.clone();
+    let result = mask_profile_secrets(profile.clone());
     save_store(&store)?;
     Ok(result)
 }
@@ -280,9 +285,11 @@ pub async fn sync_profile_infisical(profile_id: String) -> Result<EnvProfile, St
 
     for (key, value) in parsed {
         let has_enabled = profile.env_vars.iter().any(|e| e.key == key && e.enabled);
+        let encrypted_value = crypto::encrypt(&value)
+            .map_err(|e| format!("Failed to encrypt secret '{}': {}", key, e))?;
         profile.env_vars.push(GlobalEnvVar {
             key,
-            value,
+            value: encrypted_value,
             source: "infisical".to_string(),
             secret: true,
             source_file: Some(cfg.project_id.clone()),
@@ -290,7 +297,7 @@ pub async fn sync_profile_infisical(profile_id: String) -> Result<EnvProfile, St
         });
     }
 
-    let result = profile.clone();
+    let result = mask_profile_secrets(profile.clone());
     save_store(&store)?;
     Ok(result)
 }
@@ -349,13 +356,71 @@ pub async fn get_resolved_env_vars(profile_id: String) -> Result<Vec<GlobalEnvVa
     let store = load_store()?;
     let profile = store.profiles.iter().find(|p| p.id == profile_id)
         .ok_or_else(|| "Profile not found".to_string())?;
-    Ok(get_resolved_vars(profile).into_iter().cloned().collect())
+    Ok(get_resolved_vars(profile).into_iter().cloned().map(mask_global_var_secret).collect())
 }
 
 /// Public helper for project commands to load store and resolve vars.
+/// Returns **decrypted** values for CLI execution.
 pub fn load_and_resolve_profile(profile_id: &str) -> Result<Vec<GlobalEnvVar>, String> {
     let store = load_store()?;
     let profile = store.profiles.iter().find(|p| p.id == profile_id)
         .ok_or_else(|| "Profile not found".to_string())?;
-    Ok(get_resolved_vars(profile).into_iter().cloned().collect())
+    let vars: Vec<GlobalEnvVar> = get_resolved_vars(profile).into_iter().cloned().collect();
+    vars.into_iter().map(decrypt_global_var_if_secret).collect()
+}
+
+// ─── Encryption Helpers ─────────────────────────────────────────────────────
+
+/// Encrypt a GlobalEnvVar's value if it is marked as secret.
+fn encrypt_global_var_if_secret(mut var: GlobalEnvVar) -> Result<GlobalEnvVar, String> {
+    if var.secret {
+        var.value = crypto::ensure_encrypted(&var.value)?;
+    }
+    Ok(var)
+}
+
+/// Decrypt a GlobalEnvVar's value if it is marked as secret.
+fn decrypt_global_var_if_secret(mut var: GlobalEnvVar) -> Result<GlobalEnvVar, String> {
+    if var.secret && crypto::is_encrypted(&var.value) {
+        var.value = crypto::decrypt(&var.value)?;
+    }
+    Ok(var)
+}
+
+/// Replace secret values with a placeholder for frontend display.
+fn mask_global_var_secret(mut var: GlobalEnvVar) -> GlobalEnvVar {
+    if var.secret {
+        var.value = "••••••••".to_string();
+    }
+    var
+}
+
+/// Mask all secret values in a profile for frontend display.
+fn mask_profile_secrets(mut profile: EnvProfile) -> EnvProfile {
+    profile.env_vars = profile.env_vars.into_iter().map(mask_global_var_secret).collect();
+    profile
+}
+
+// ─── Decrypt Commands for Frontend ──────────────────────────────────────────
+
+/// Decrypt a global env var's secret value for frontend reveal.
+#[tauri::command]
+pub async fn decrypt_global_env_secret(profile_id: String, key: String) -> Result<String, String> {
+    let store = load_store()?;
+    let profile = store.profiles.iter().find(|p| p.id == profile_id)
+        .ok_or_else(|| "Profile not found".to_string())?;
+    let var = profile.env_vars.iter().find(|v| v.key == key && v.secret)
+        .ok_or_else(|| format!("Secret '{}' not found", key))?;
+    crypto::decrypt(&var.value)
+}
+
+/// Decrypt a project env var's secret value for frontend reveal.
+#[tauri::command]
+pub async fn decrypt_project_env_secret(project_id: String, key: String, profile: String) -> Result<String, String> {
+    let projects = crate::commands::project::load_projects()?;
+    let project = crate::commands::project::find_project(&projects, &project_id)?;
+    let entry = project.env_vars.iter()
+        .find(|e| e.key == key && e.profile == profile && e.secret)
+        .ok_or_else(|| format!("Secret '{}' not found", key))?;
+    crypto::decrypt(&entry.value)
 }

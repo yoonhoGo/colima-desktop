@@ -148,6 +148,10 @@ export const api = {
     invoke<boolean>("test_profile_infisical", { profileId }),
   getResolvedEnvVars: (profileId: string) =>
     invoke<GlobalEnvVar[]>("get_resolved_env_vars", { profileId }),
+  decryptGlobalEnvSecret: (profileId: string, key: string) =>
+    invoke<string>("decrypt_global_env_secret", { profileId, key }),
+  decryptProjectEnvSecret: (projectId: string, key: string, profile: string) =>
+    invoke<string>("decrypt_project_env_secret", { projectId, key, profile }),
 
   // mDNS
   mdnsGetConfig: () =>
