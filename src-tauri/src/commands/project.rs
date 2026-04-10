@@ -264,7 +264,7 @@ pub async fn list_projects() -> Result<Vec<ProjectWithStatus>, String> {
 
     for project in projects {
         if !std::path::Path::new(&project.workspace_path).exists() {
-            result.push(project.with_status("path_missing".to_string(), vec![]));
+            result.push(mask_project_with_status_secrets(project.with_status("path_missing".to_string(), vec![])));
             continue;
         }
 
@@ -275,10 +275,20 @@ pub async fn list_projects() -> Result<Vec<ProjectWithStatus>, String> {
             _ => ("unknown".to_string(), vec![]),
         };
 
-        result.push(project.with_status(status, container_ids));
+        result.push(mask_project_with_status_secrets(project.with_status(status, container_ids)));
     }
 
     Ok(result)
+}
+
+/// Mask secret values in ProjectWithStatus for frontend display.
+fn mask_project_with_status_secrets(mut pws: ProjectWithStatus) -> ProjectWithStatus {
+    for var in &mut pws.env_vars {
+        if var.secret {
+            var.value = "••••••••".to_string();
+        }
+    }
+    pws
 }
 
 async fn get_compose_status(project: &Project) -> (String, Vec<String>) {
@@ -401,7 +411,7 @@ pub async fn add_project(
     projects.push(project.clone());
     save_projects(&projects)?;
 
-    Ok(project.with_status("not_created".to_string(), vec![]))
+    Ok(mask_project_with_status_secrets(project.with_status("not_created".to_string(), vec![])))
 }
 
 #[tauri::command]
@@ -537,10 +547,19 @@ async fn collect_env_args(project: &Project, app: &AppHandle, event_name: &str) 
     }
 
     // Add manual env vars for active profile (these override dotenv and command)
+    // Decrypt secret values in-memory before passing to CLI
     for var in &project.env_vars {
         if var.profile == project.active_profile && !var.secret {
             env_args.push("-e".to_string());
             env_args.push(format!("{}={}", var.key, var.value));
+        } else if var.profile == project.active_profile && var.secret {
+            let decrypted = if crate::crypto::is_encrypted(&var.value) {
+                crate::crypto::decrypt(&var.value)?
+            } else {
+                var.value.clone()
+            };
+            env_args.push("-e".to_string());
+            env_args.push(format!("{}={}", var.key, decrypted));
         }
     }
 

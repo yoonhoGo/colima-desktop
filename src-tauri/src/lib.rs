@@ -1,5 +1,6 @@
 mod cli;
 mod commands;
+pub mod crypto;
 mod mdns;
 mod tray;
 
@@ -95,6 +96,8 @@ pub fn run() {
             commands::env_store::sync_profile_infisical,
             commands::env_store::test_profile_infisical,
             commands::env_store::get_resolved_env_vars,
+            commands::env_store::decrypt_global_env_secret,
+            commands::env_store::decrypt_project_env_secret,
             commands::app_settings::get_app_settings,
             commands::app_settings::save_app_settings,
             // mDNS

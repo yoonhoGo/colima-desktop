@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Eye, EyeOff, Lock, Pencil, Check } from "lucide-react";
 import type { EnvVarEntry } from "../../types";
 import { useSetEnvVar, useRemoveEnvVar } from "../../hooks/useEnvSecrets";
+import { api } from "../../lib/tauri";
 
 interface EnvVarTableProps {
   projectId: string;
@@ -16,7 +17,7 @@ export function EnvVarTable({ projectId, envVars, activeProfile }: EnvVarTablePr
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
   const [newSecret, setNewSecret] = useState(false);
-  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
+  const [revealedKeys, setRevealedKeys] = useState<Map<string, string>>(new Map());
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const setEnvVar = useSetEnvVar();
@@ -47,9 +48,18 @@ export function EnvVarTable({ projectId, envVars, activeProfile }: EnvVarTablePr
     removeEnvVar.mutate({ projectId, key, profile: activeProfile });
   };
 
-  const startEdit = (v: { key: string; value: string }) => {
+  const startEdit = async (v: EnvVarEntry) => {
     setEditingKey(v.key);
-    setEditValue(v.value);
+    if (v.secret) {
+      try {
+        const decrypted = await api.decryptProjectEnvSecret(projectId, v.key, activeProfile);
+        setEditValue(decrypted);
+      } catch {
+        setEditValue("");
+      }
+    } else {
+      setEditValue(v.value);
+    }
   };
 
   const saveEdit = (key: string, secret: boolean) => {
@@ -70,14 +80,23 @@ export function EnvVarTable({ projectId, envVars, activeProfile }: EnvVarTablePr
     setEditingKey(null);
   };
 
-  const toggleReveal = (key: string) => {
-    setRevealedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+  const toggleReveal = useCallback(async (key: string) => {
+    if (revealedKeys.has(key)) {
+      setRevealedKeys((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+    } else {
+      try {
+        const decrypted = await api.decryptProjectEnvSecret(projectId, key, activeProfile);
+        setRevealedKeys((prev) => new Map(prev).set(key, decrypted));
+      } catch {
+        // Fallback: show placeholder on error
+        setRevealedKeys((prev) => new Map(prev).set(key, "[decrypt error]"));
+      }
+    }
+  }, [revealedKeys, projectId, activeProfile]);
 
   const sourceColor = (source: string) => {
     switch (source) {
@@ -146,7 +165,7 @@ export function EnvVarTable({ projectId, envVars, activeProfile }: EnvVarTablePr
                     onClick={() => v.source === "manual" && startEdit(v)}
                     title={v.source === "manual" ? "Click to edit" : undefined}
                   >
-                    {v.secret && !revealedKeys.has(v.key) ? "••••••••" : v.value}
+                    {v.secret && !revealedKeys.has(v.key) ? "••••••••" : (revealedKeys.get(v.key) ?? v.value)}
                   </code>
                 </>
               )}
