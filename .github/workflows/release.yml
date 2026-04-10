@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_prerelease: ${{ steps.check-tag.outputs.is_prerelease }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Check tag type
         id: check-tag
@@ -19,6 +20,15 @@ jobs:
             echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Set build matrix
+        id: set-matrix
+        run: |
+          if [[ "${{ steps.check-tag.outputs.is_prerelease }}" == "true" ]]; then
+            # Pre-release: skip Windows (WiX MSI bundler rejects pre-release version identifiers)
+            echo 'matrix={"include":[{"platform":"macos-latest","args":"--target aarch64-apple-darwin"},{"platform":"macos-latest","args":"--target x86_64-apple-darwin"},{"platform":"ubuntu-22.04","args":""}]}' >> "$GITHUB_OUTPUT"
+          else
+            echo 'matrix={"include":[{"platform":"macos-latest","args":"--target aarch64-apple-darwin"},{"platform":"macos-latest","args":"--target x86_64-apple-darwin"},{"platform":"ubuntu-22.04","args":""},{"platform":"windows-latest","args":""}]}' >> "$GITHUB_OUTPUT"
           fi
 
   create-release:
@@ -54,16 +64,7 @@ jobs:
       contents: write
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: macos-latest
-            args: --target aarch64-apple-darwin
-          - platform: macos-latest
-            args: --target x86_64-apple-darwin
-          - platform: ubuntu-22.04
-            args: ''
-          - platform: windows-latest
-            args: ''
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -95,15 +96,13 @@ jobs:
       - name: Sync version from git tag
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          # Strip pre-release identifier for bundle version (WiX/NSIS require X.Y.Z format)
-          BUNDLE_VERSION="${VERSION%%-*}"
-          echo "Syncing version to ${BUNDLE_VERSION} (tag: ${VERSION})"
+          echo "Syncing version to ${VERSION}"
           # Update tauri.conf.json
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${BUNDLE_VERSION}\"/" src-tauri/tauri.conf.json && rm src-tauri/tauri.conf.json.bak
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" src-tauri/tauri.conf.json && rm src-tauri/tauri.conf.json.bak
           # Update package.json
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${BUNDLE_VERSION}\"/" package.json && rm package.json.bak
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" package.json && rm package.json.bak
           # Update Cargo.toml
-          sed -i.bak "s/^version = \".*\"/version = \"${BUNDLE_VERSION}\"/" src-tauri/Cargo.toml && rm src-tauri/Cargo.toml.bak
+          sed -i.bak "s/^version = \".*\"/version = \"${VERSION}\"/" src-tauri/Cargo.toml && rm src-tauri/Cargo.toml.bak
         shell: bash
 
       - name: Configure beta updater endpoint
