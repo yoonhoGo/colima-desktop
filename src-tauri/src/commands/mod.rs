@@ -14,3 +14,4 @@ pub mod project_config;
 pub mod onboarding;
 pub mod update;
 pub mod volume;
+pub mod mdns;

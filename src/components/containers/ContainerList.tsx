@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useContainers, usePruneContainers } from "../../hooks/useContainers";
 import { useProjects } from "../../hooks/useProjects";
+import { useMdnsConfig, useMdnsSync } from "../../hooks/useMdns";
 import { ContainerRow } from "./ContainerRow";
 import { ComposeGroup } from "./ComposeGroup";
 import { ContainerLogs } from "./ContainerLogs";
@@ -9,7 +10,7 @@ import { ContainerDetail } from "./ContainerDetail";
 import { ProjectsTab } from "./ProjectsTab";
 import { ProjectDetail } from "./ProjectDetail";
 import { Button } from "@/components/ui/button";
-import type { Container, Project } from "../../types";
+import type { Container, Project, MdnsServiceEntry } from "../../types";
 
 type Filter = "all" | "running" | "stopped";
 type Tab = "running" | "projects";
@@ -32,6 +33,8 @@ export function ContainerList() {
     () => allProjects?.find((p) => p.id === selectedProjectId) ?? null,
     [allProjects, selectedProjectId]
   );
+  const { data: mdnsConfig } = useMdnsConfig();
+  const { data: mdnsSync } = useMdnsSync(mdnsConfig?.enabled ?? false);
 
   const stoppedCount = useMemo(() =>
     containers?.filter((c) => c.state !== "running").length ?? 0,
@@ -66,6 +69,16 @@ export function ContainerList() {
 
     return { composeGroups, standalone };
   }, [filtered]);
+
+  const mdnsServiceMap = useMemo(() => {
+    const map = new Map<string, MdnsServiceEntry>();
+    if (mdnsSync?.services) {
+      for (const svc of mdnsSync.services) {
+        map.set(svc.container_name, svc);
+      }
+    }
+    return map;
+  }, [mdnsSync]);
 
   if (selectedProject) {
     return <ProjectDetail project={selectedProject} onBack={() => setSelectedProjectId(null)} />;
@@ -138,10 +151,21 @@ export function ContainerList() {
                 containers={group.containers}
                 onViewLogs={setLogsContainerId}
                 onInspect={setInspectId}
+                mdnsServiceMap={mdnsServiceMap}
+                mdnsConfig={mdnsConfig}
               />
             ))}
             {standalone.map((container) => (
-              <ContainerRow key={container.id} container={container} onViewLogs={setLogsContainerId} onInspect={setInspectId} />
+              <ContainerRow
+                key={container.id}
+                container={container}
+                onViewLogs={setLogsContainerId}
+                onInspect={setInspectId}
+                mdnsService={mdnsServiceMap.get(container.name)}
+                mdnsOverride={mdnsConfig?.container_overrides?.[container.name]}
+                mdnsEnabled={mdnsConfig?.enabled}
+                defaultServiceType={mdnsConfig?.default_service_type}
+              />
             ))}
             {composeGroups.length === 0 && standalone.length === 0 && !isLoading && (
               <p className="text-sm text-muted-foreground">No containers found.</p>

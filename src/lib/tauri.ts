@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats, ColimaVersion, VersionCheck, ColimaInstallCheck, Project, ProjectTypeDetection, EnvVarEntry, InfisicalConfig, AppSettings, DevcontainerConfigResponse, DevcontainerValidationError, GlobalEnvVar, EnvProfile, ProjectEnvBinding } from "../types";
+import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats, ColimaVersion, VersionCheck, ColimaInstallCheck, Project, ProjectTypeDetection, EnvVarEntry, InfisicalConfig, AppSettings, DevcontainerConfigResponse, DevcontainerValidationError, GlobalEnvVar, EnvProfile, ProjectEnvBinding, MdnsConfig, ContainerMdnsOverride, MdnsSyncResult, MdnsStatusResponse } from "../types";
 
 export const api = {
   colimaStatus: () => invoke<ColimaStatus>("colima_status"),
@@ -148,4 +148,18 @@ export const api = {
     invoke<boolean>("test_profile_infisical", { profileId }),
   getResolvedEnvVars: (profileId: string) =>
     invoke<GlobalEnvVar[]>("get_resolved_env_vars", { profileId }),
+
+  // mDNS
+  mdnsGetConfig: () =>
+    invoke<MdnsConfig>("mdns_get_config"),
+  mdnsSetConfig: (config: MdnsConfig) =>
+    invoke<void>("mdns_set_config", { config }),
+  mdnsSetContainerOverride: (containerName: string, overrideConfig: ContainerMdnsOverride) =>
+    invoke<void>("mdns_set_container_override", { containerName, overrideConfig }),
+  mdnsRemoveContainerOverride: (containerName: string) =>
+    invoke<void>("mdns_remove_container_override", { containerName }),
+  mdnsSyncContainers: () =>
+    invoke<MdnsSyncResult>("mdns_sync_containers"),
+  mdnsGetStatus: () =>
+    invoke<MdnsStatusResponse>("mdns_get_status"),
 };

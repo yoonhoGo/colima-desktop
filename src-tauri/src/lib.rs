@@ -1,5 +1,6 @@
 mod cli;
 mod commands;
+mod mdns;
 mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -9,6 +10,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_liquid_glass::init())
+        .manage(mdns::manager::create_mdns_manager())
         .invoke_handler(tauri::generate_handler![
             commands::colima::colima_status,
             commands::colima::colima_start,
@@ -95,6 +97,13 @@ pub fn run() {
             commands::env_store::get_resolved_env_vars,
             commands::app_settings::get_app_settings,
             commands::app_settings::save_app_settings,
+            // mDNS
+            commands::mdns::mdns_get_config,
+            commands::mdns::mdns_set_config,
+            commands::mdns::mdns_set_container_override,
+            commands::mdns::mdns_remove_container_override,
+            commands::mdns::mdns_sync_containers,
+            commands::mdns::mdns_get_status,
         ])
         .setup(|app| {
             tray::create_tray(app)?;

@@ -256,3 +256,50 @@ export interface DevcontainerValidationError {
 
 export type ConfigTab = "general" | "features" | "ports-env" | "lifecycle" | "json";
 export type DevcontainerSourceType = "image" | "dockerfile";
+
+// ─── mDNS ────────────────────────────────────────────────────────────────────
+
+export interface MdnsConfig {
+  enabled: boolean;
+  auto_register: boolean;
+  default_service_type: string;
+  container_overrides: Record<string, ContainerMdnsOverride>;
+}
+
+export interface ContainerMdnsOverride {
+  enabled: boolean;
+  hostname?: string | null;
+  service_type?: string | null;
+  port?: number | null;
+}
+
+export interface MdnsServiceEntry {
+  container_id: string;
+  container_name: string;
+  hostname: string;
+  service_type: string;
+  port: number;
+  registered: boolean;
+  auto_registered: boolean;
+}
+
+export interface MdnsSyncResult {
+  services: MdnsServiceEntry[];
+  daemon_running: boolean;
+}
+
+export interface MdnsStatusResponse {
+  enabled: boolean;
+  daemon_running: boolean;
+  registered_count: number;
+  services: MdnsRegisteredService[];
+}
+
+export interface MdnsRegisteredService {
+  container_name: string;
+  hostname: string;
+  service_type: string;
+  port: number;
+  fullname: string;
+  auto_registered: boolean;
+}

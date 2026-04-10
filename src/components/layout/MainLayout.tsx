@@ -11,10 +11,11 @@ import { DockerSettingsPanel } from "../settings/DockerSettingsPanel";
 import { UpdatePanel } from "../settings/UpdatePanel";
 import { AppearanceSettings } from "../settings/AppearanceSettings";
 import { TerminalSettings } from "../settings/TerminalSettings";
+import { MdnsSettings } from "../settings/MdnsSettings";
 import { EnvironmentPage } from "../environment/EnvironmentPage";
 
 type Page = "containers" | "images" | "volumes" | "networks" | "environment" | "settings";
-type SettingsTab = "vm" | "mounts" | "network" | "docker" | "terminal" | "update" | "appearance";
+type SettingsTab = "vm" | "mounts" | "network" | "docker" | "mdns" | "terminal" | "update" | "appearance";
 
 export function MainLayout() {
   const [activePage, setActivePage] = useState<Page>("containers");
@@ -73,6 +74,16 @@ export function MainLayout() {
                 Docker
               </button>
               <button
+                onClick={() => setSettingsTab("mdns")}
+                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                  settingsTab === "mdns"
+                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
+                    : "text-muted-foreground hover:text-foreground border border-transparent"
+                }`}
+              >
+                mDNS
+              </button>
+              <button
                 onClick={() => setSettingsTab("terminal")}
                 className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                   settingsTab === "terminal"
@@ -107,6 +118,7 @@ export function MainLayout() {
             {settingsTab === "mounts" && <MountSettings />}
             {settingsTab === "network" && <NetworkSettingsPanel />}
             {settingsTab === "docker" && <DockerSettingsPanel />}
+            {settingsTab === "mdns" && <MdnsSettings />}
             {settingsTab === "terminal" && <TerminalSettings />}
             {settingsTab === "update" && <UpdatePanel />}
             {settingsTab === "appearance" && <AppearanceSettings />}

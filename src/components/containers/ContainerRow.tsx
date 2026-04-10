@@ -1,20 +1,28 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SquareTerminal } from "lucide-react";
-import type { Container } from "../../types";
+import type { Container, MdnsServiceEntry, ContainerMdnsOverride } from "../../types";
 import { useContainerAction } from "../../hooks/useContainers";
 import { useOpenTerminalExec } from "../../hooks/useProjects";
+import { ContainerMdnsBadge } from "./ContainerMdnsBadge";
+import { ContainerMdnsDialog } from "./ContainerMdnsDialog";
 
 interface ContainerRowProps {
   container: Container;
   onViewLogs: (id: string) => void;
   onInspect?: (id: string) => void;
   showServiceName?: boolean;
+  mdnsService?: MdnsServiceEntry;
+  mdnsOverride?: ContainerMdnsOverride;
+  mdnsEnabled?: boolean;
+  defaultServiceType?: string;
 }
 
-export function ContainerRow({ container, onViewLogs, onInspect, showServiceName }: ContainerRowProps) {
+export function ContainerRow({ container, onViewLogs, onInspect, showServiceName, mdnsService, mdnsOverride, mdnsEnabled, defaultServiceType }: ContainerRowProps) {
   const action = useContainerAction();
   const openTerminal = useOpenTerminalExec();
+  const [showMdnsDialog, setShowMdnsDialog] = useState(false);
   const isRunning = container.state === "running";
   const displayName = showServiceName && container.compose_service
     ? container.compose_service
@@ -32,6 +40,12 @@ export function ContainerRow({ container, onViewLogs, onInspect, showServiceName
         <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
           <span className="truncate">{container.image}</span>
           {container.ports && <span>{container.ports}</span>}
+          {mdnsEnabled && container.state === "running" && (
+            <ContainerMdnsBadge
+              service={mdnsService}
+              onConfigure={() => setShowMdnsDialog(true)}
+            />
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1">
@@ -57,6 +71,15 @@ export function ContainerRow({ container, onViewLogs, onInspect, showServiceName
         {onInspect && <Button variant="ghost" size="sm" onClick={() => onInspect(container.id)}>Inspect</Button>}
         <Button variant="ghost" size="sm" className="text-destructive" onClick={() => action.mutate({ id: container.id, action: "remove" })} disabled={action.isPending}>Remove</Button>
       </div>
+      {showMdnsDialog && (
+        <ContainerMdnsDialog
+          containerName={container.name}
+          currentOverride={mdnsOverride}
+          currentService={mdnsService}
+          defaultServiceType={defaultServiceType ?? "_http._tcp.local."}
+          onClose={() => setShowMdnsDialog(false)}
+        />
+      )}
     </div>
   );
 }
