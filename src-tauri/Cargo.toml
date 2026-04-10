@@ -1,6 +1,6 @@
 [package]
 name = "colima-desktop"
-version = "0.6.0"
+version = "0.7.0"
 description = "Colima Desktop - GUI for Colima"
 authors = ["you"]
 edition = "2021"
