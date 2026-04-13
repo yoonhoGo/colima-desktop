@@ -153,68 +153,70 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold truncate">{project.name}</h1>
-            <Badge variant="outline" className="text-xs">
-              {typeLabel}
-            </Badge>
-            {project.status === "running" && (
-              <Badge
-                variant="default"
-                className="text-xs bg-[var(--status-running-bg)] text-[var(--status-running-text)] border border-[var(--status-running-border)]"
-              >
-                Running
+      {/* Header — sticky */}
+      <div className="sticky top-0 z-20 -mx-4 -mt-4 px-4 pt-4 pb-3 glass-panel border-b border-[var(--glass-border)]">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold truncate">{project.name}</h1>
+              <Badge variant="outline" className="text-xs shrink-0">
+                {typeLabel}
               </Badge>
+              {project.status === "running" && (
+                <Badge
+                  variant="default"
+                  className="text-xs shrink-0 bg-[var(--status-running-bg)] text-[var(--status-running-text)] border border-[var(--status-running-border)]"
+                >
+                  Running
+                </Badge>
+              )}
+            </div>
+            <span className="text-xs text-muted-foreground truncate block">
+              {project.workspace_path}
+            </span>
+          </div>
+          <div className="flex gap-1 shrink-0">
+            {project.project_type === "devcontainer" && (
+              <Button size="sm" variant="outline" onClick={() => setShowConfig(true)}>
+                <Settings className="h-3.5 w-3.5 mr-1" />
+                Config
+              </Button>
+            )}
+            {project.status === "running" ? (
+              <>
+                <Button
+                  size="sm"
+                  variant={hasChanges ? "default" : "outline"}
+                  onClick={() => handleAction("rebuild")}
+                  disabled={disabled}
+                >
+                  {hasChanges ? (
+                    <Save className="h-3.5 w-3.5 mr-1" />
+                  ) : (
+                    <RotateCw className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  {hasChanges ? "Save & Rebuild" : "Rebuild"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleAction("stop")} disabled={disabled}>
+                  <Square className="h-3.5 w-3.5 mr-1" />
+                  Stop
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" onClick={() => handleAction("up")} disabled={disabled}>
+                <Play className="h-3.5 w-3.5 mr-1" />
+                Start
+              </Button>
             )}
           </div>
-          <span className="text-xs text-muted-foreground truncate block">
-            {project.workspace_path}
-          </span>
-        </div>
-        <div className="flex gap-1">
-          {project.project_type === "devcontainer" && (
-            <Button size="sm" variant="outline" onClick={() => setShowConfig(true)}>
-              <Settings className="h-3.5 w-3.5 mr-1" />
-              Config
-            </Button>
-          )}
-          {project.status === "running" ? (
-            <>
-              <Button
-                size="sm"
-                variant={hasChanges ? "default" : "outline"}
-                onClick={() => handleAction("rebuild")}
-                disabled={disabled}
-              >
-                {hasChanges ? (
-                  <Save className="h-3.5 w-3.5 mr-1" />
-                ) : (
-                  <RotateCw className="h-3.5 w-3.5 mr-1" />
-                )}
-                {hasChanges ? "Save & Rebuild" : "Rebuild"}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleAction("stop")} disabled={disabled}>
-                <Square className="h-3.5 w-3.5 mr-1" />
-                Stop
-              </Button>
-            </>
-          ) : (
-            <Button size="sm" onClick={() => handleAction("up")} disabled={disabled}>
-              <Play className="h-3.5 w-3.5 mr-1" />
-              Start
-            </Button>
-          )}
         </div>
       </div>
 
       {/* Config sections */}
-      <div className="grid gap-4">
+      <div className="grid gap-4 min-w-0">
         {/* Watch Mode & Remote Debug */}
         <div className="glass-panel rounded-lg p-4 space-y-3">
           <h3 className="text-sm font-semibold">Execution Options</h3>
