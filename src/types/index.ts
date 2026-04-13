@@ -263,6 +263,7 @@ export interface MdnsConfig {
   enabled: boolean;
   auto_register: boolean;
   default_service_type: string;
+  ip_mode: string;
   container_overrides: Record<string, ContainerMdnsOverride>;
 }
 
@@ -302,4 +303,17 @@ export interface MdnsRegisteredService {
   port: number;
   fullname: string;
   auto_registered: boolean;
+}
+
+// Reverse Proxy
+export interface ProxyRoute {
+  hostname: string;
+  target_port: number;
+}
+
+export interface ProxyStatus {
+  running: boolean;
+  port: number;
+  routes: ProxyRoute[];
+  pf_enabled: boolean;
 }

@@ -1,3 +1,4 @@
+use crate::commands::proxy::ProxyState;
 use crate::mdns::config::{self, ContainerMdnsOverride, MdnsConfig};
 use crate::mdns::manager::MdnsManager;
 use crate::mdns::sync::{self, MdnsSyncResult};
@@ -68,6 +69,7 @@ pub async fn mdns_remove_container_override(
 pub async fn mdns_sync_containers(
     app: tauri::AppHandle,
     state: State<'_, MdnsManager>,
+    proxy_state: State<'_, ProxyState>,
 ) -> Result<MdnsSyncResult, String> {
     let path = config_path(&app)?;
     let config = config::load_config(&path).await;
@@ -80,7 +82,21 @@ pub async fn mdns_sync_containers(
         manager.disable();
     }
 
-    sync::sync_containers(&mut manager, &config).await
+    let result = sync::sync_containers(&mut manager, &config).await?;
+
+    // Sync proxy route table with registered mDNS services
+    {
+        let mut routes = proxy_state.routes.lock().await;
+        routes.clear();
+        for service in &result.services {
+            if service.registered && service.port > 0 {
+                let key = format!("{}.local", service.hostname);
+                routes.insert(key, service.port);
+            }
+        }
+    }
+
+    Ok(result)
 }
 
 #[tauri::command]

@@ -35,6 +35,9 @@ pub async fn sync_containers(
         });
     }
 
+    // Resolve IP once per sync cycle
+    let ip = crate::mdns::manager::resolve_mdns_ip(&config.ip_mode).await;
+
     // 1. 현재 실행 중인 컨테이너 목록 조회
     let entries: Vec<DockerPsEntry> = match CliExecutor::run_json_lines(
         DOCKER,
@@ -104,7 +107,7 @@ pub async fn sync_containers(
 
             if let Some(port) = port {
                 if !manager.registered.contains_key(name) {
-                    let _ = manager.register(name, hostname, stype, port, false);
+                    let _ = manager.register(name, hostname, stype, port, false, ip);
                 }
                 result_services.push(MdnsServiceEntry {
                     container_id: entry.id.clone(),
@@ -128,6 +131,7 @@ pub async fn sync_containers(
                         &config.default_service_type,
                         port,
                         true,
+                        ip,
                     );
                 }
                 result_services.push(MdnsServiceEntry {
