@@ -182,8 +182,9 @@ pub async fn connect_container(container_name: &str) -> Result<(), String> {
 
 /// Get a container's IP address on the gateway network.
 pub async fn get_container_ip(container_name: &str) -> Result<String, String> {
+    // Use `index` for network names with hyphens (Go template syntax)
     let format = format!(
-        "{{{{.NetworkSettings.Networks.{}.IPAddress}}}}",
+        "{{{{(index .NetworkSettings.Networks \"{}\").IPAddress}}}}",
         GATEWAY_NETWORK
     );
     let ip = CliExecutor::run(
