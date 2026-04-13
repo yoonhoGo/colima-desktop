@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   SquareTerminal,
@@ -7,6 +8,7 @@ import {
   ScrollText,
   Search,
   Trash2,
+  Globe,
 } from "lucide-react";
 import type {
   Container,
@@ -15,6 +17,7 @@ import type {
 } from "../../types";
 import { useContainerAction } from "../../hooks/useContainers";
 import { useOpenTerminalExec } from "../../hooks/useProjects";
+import { ContainerDomainDialog } from "./ContainerDomainDialog";
 import { cn } from "@/lib/utils";
 
 function parseHostPorts(ports: string): string[] {
@@ -51,10 +54,12 @@ export function ContainerRow({
   showServiceName,
   compact,
   domainService,
+  domainOverride,
   domainEnabled,
 }: ContainerRowProps) {
   const action = useContainerAction();
   const openTerminal = useOpenTerminalExec();
+  const [showDomainDialog, setShowDomainDialog] = useState(false);
   const isRunning = container.state === "running";
   const displayName =
     showServiceName && container.compose_service
@@ -103,9 +108,13 @@ export function ContainerRow({
               </span>
             )}
             {domainEnabled && isRunning && domainService?.registered && (
-              <span className="text-[10px] font-mono text-muted-foreground">
+              <button
+                className="text-[10px] font-mono text-emerald-500 hover:underline cursor-pointer bg-transparent border-none p-0"
+                onClick={() => setShowDomainDialog(true)}
+                title={`http://${domainService.domain}`}
+              >
                 {domainService.domain}
-              </span>
+              </button>
             )}
           </div>
         )}
@@ -113,6 +122,17 @@ export function ContainerRow({
 
       {/* Action buttons — icon-only, secondary actions revealed on hover */}
       <div className="flex items-center gap-0.5 shrink-0">
+        {isRunning && domainEnabled && (
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setShowDomainDialog(true)}
+            title="Configure domain"
+            className={domainService?.registered ? "text-emerald-500" : ""}
+          >
+            <Globe className="h-3.5 w-3.5" />
+          </Button>
+        )}
         {isRunning && (
           <Button
             variant="ghost"
@@ -193,6 +213,15 @@ export function ContainerRow({
         </Button>
       </div>
 
+      {showDomainDialog && (
+        <ContainerDomainDialog
+          containerName={container.name}
+          override={domainOverride}
+          service={domainService}
+          open={showDomainDialog}
+          onClose={() => setShowDomainDialog(false)}
+        />
+      )}
     </div>
   );
 }
