@@ -10,8 +10,15 @@ pub struct MdnsConfig {
     pub auto_register: bool,
     #[serde(default = "default_service_type")]
     pub default_service_type: String,
+    /// IP resolution mode: "auto" (LAN IP), "vm" (Colima VM IP), "localhost", or a custom IP.
+    #[serde(default = "default_ip_mode")]
+    pub ip_mode: String,
     #[serde(default)]
     pub container_overrides: HashMap<String, ContainerMdnsOverride>,
+}
+
+fn default_ip_mode() -> String {
+    "auto".to_string()
 }
 
 fn default_true() -> bool {
@@ -28,6 +35,7 @@ impl Default for MdnsConfig {
             enabled: false,
             auto_register: true,
             default_service_type: default_service_type(),
+            ip_mode: default_ip_mode(),
             container_overrides: HashMap::new(),
         }
     }

@@ -1,6 +1,7 @@
 use mdns_sd::{ServiceDaemon, ServiceInfo};
 use serde::Serialize;
 use std::collections::HashMap;
+use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -57,15 +58,14 @@ impl MdnsManagerInner {
         service_type: &str,
         port: u16,
         auto_registered: bool,
+        ip: IpAddr,
     ) -> Result<(), String> {
         let daemon = self.daemon.as_ref().ok_or("mDNS daemon not running")?;
 
         let stype = normalize_service_type(service_type);
-        let host_ip = local_ip_address::local_ip()
-            .map_err(|e| format!("Failed to get local IP: {}", e))?;
 
         // hostname을 FQDN으로 변환 (e.g., "kafka-ui" → "kafka-ui.local.")
-        // 이렇게 해야 kafka-ui.local → 192.168.x.x A 레코드가 생성됨
+        // 이렇게 해야 kafka-ui.local → IP A 레코드가 생성됨
         let fqdn_host = format!("{}.local.", hostname);
 
         let fullname = format!("{}.{}", hostname, stype);
@@ -74,7 +74,7 @@ impl MdnsManagerInner {
             &stype,
             hostname,
             &fqdn_host,
-            host_ip,
+            ip,
             port,
             [("source", "colima-desktop")].as_ref(),
         )
@@ -117,6 +117,58 @@ impl Drop for MdnsManagerInner {
     fn drop(&mut self) {
         self.disable();
     }
+}
+
+/// Resolve the IP address to use for mDNS registration based on ip_mode.
+/// - "auto": LAN IP → 127.0.0.1 fallback
+/// - "vm": Colima VM IP → LAN IP → 127.0.0.1 fallback
+/// - "localhost": always 127.0.0.1
+/// - anything else: parse as custom IP
+pub async fn resolve_mdns_ip(ip_mode: &str) -> IpAddr {
+    match ip_mode {
+        "vm" => {
+            if let Some(ip) = get_colima_vm_ip().await {
+                return ip;
+            }
+            // fallback to auto
+            local_ip_address::local_ip().unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST))
+        }
+        "localhost" => IpAddr::V4(Ipv4Addr::LOCALHOST),
+        "auto" | "" => {
+            local_ip_address::local_ip().unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST))
+        }
+        custom => custom
+            .parse::<IpAddr>()
+            .unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+    }
+}
+
+/// Get the Colima VM's first routable IP address via `colima ssh -- hostname -I`.
+async fn get_colima_vm_ip() -> Option<IpAddr> {
+    let output = tokio::process::Command::new("colima")
+        .args(["ssh", "--", "hostname", "-I"])
+        .output()
+        .await
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // hostname -I returns space-separated IPs; take the first non-Docker one
+    stdout
+        .split_whitespace()
+        .filter_map(|s| s.parse::<IpAddr>().ok())
+        .find(|ip| {
+            // Skip Docker bridge IPs (172.17.x.x, 172.18.x.x, etc.)
+            if let IpAddr::V4(v4) = ip {
+                let octets = v4.octets();
+                !(octets[0] == 172 && (16..=31).contains(&octets[1]))
+            } else {
+                true
+            }
+        })
 }
 
 pub fn normalize_service_type(service_type: &str) -> String {

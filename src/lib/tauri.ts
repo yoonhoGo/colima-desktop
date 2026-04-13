@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats, ColimaVersion, VersionCheck, ColimaInstallCheck, Project, ProjectTypeDetection, EnvVarEntry, InfisicalConfig, AppSettings, DevcontainerConfigResponse, DevcontainerValidationError, GlobalEnvVar, EnvProfile, ProjectEnvBinding, MdnsConfig, ContainerMdnsOverride, MdnsSyncResult, MdnsStatusResponse } from "../types";
+import type { Container, Image, ColimaStatus, VmSettings, HostInfo, Volume, Network, MountSettings, MountEntry, NetworkSettings, DnsHostEntry, DockerDaemonSettings, ContainerDetail, ContainerStats, ColimaVersion, VersionCheck, ColimaInstallCheck, Project, ProjectTypeDetection, EnvVarEntry, InfisicalConfig, AppSettings, DevcontainerConfigResponse, DevcontainerValidationError, GlobalEnvVar, EnvProfile, ProjectEnvBinding, MdnsConfig, ContainerMdnsOverride, MdnsSyncResult, MdnsStatusResponse, ProxyStatus } from "../types";
 
 export const api = {
   colimaStatus: () => invoke<ColimaStatus>("colima_status"),
@@ -166,4 +166,15 @@ export const api = {
     invoke<MdnsSyncResult>("mdns_sync_containers"),
   mdnsGetStatus: () =>
     invoke<MdnsStatusResponse>("mdns_get_status"),
+
+  // Reverse Proxy
+  proxyStart: () => invoke<void>("proxy_start"),
+  proxyStop: () => invoke<void>("proxy_stop"),
+  proxyGetStatus: () => invoke<ProxyStatus>("proxy_get_status"),
+  proxyAddRoute: (hostname: string, targetPort: number) =>
+    invoke<void>("proxy_add_route", { hostname, targetPort }),
+  proxyRemoveRoute: (hostname: string) =>
+    invoke<void>("proxy_remove_route", { hostname }),
+  proxyEnablePf: () => invoke<void>("proxy_enable_pf"),
+  proxyDisablePf: () => invoke<void>("proxy_disable_pf"),
 };

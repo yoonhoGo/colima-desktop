@@ -408,6 +408,22 @@ pub async fn test_infisical_connection(project_id: String) -> Result<bool, Strin
     Ok(output.status.success())
 }
 
+// ─── Compose Service Detection ──────────────────────────────────────────────
+
+/// Read the compose file and return the first service name defined under `services:`.
+fn detect_first_compose_service(
+    workspace: &std::path::Path,
+    compose_file: Option<&str>,
+) -> Option<String> {
+    let filename = compose_file.unwrap_or("docker-compose.yml");
+    let compose_path = workspace.join(filename);
+    let content = std::fs::read_to_string(&compose_path).ok()?;
+    let doc: serde_yaml::Value = serde_yaml::from_str(&content).ok()?;
+    let services = doc.get("services")?.as_mapping()?;
+    let first_key = services.keys().next()?;
+    first_key.as_str().map(|s| s.to_string())
+}
+
 // ─── Compose Secrets Preparation ─────────────────────────────────────────────
 
 /// Internal helper (not a Tauri command) — called from compose_up.
@@ -482,10 +498,11 @@ pub fn prepare_secrets_for_compose(project: &Project) -> Result<Option<String>, 
         }
     }
 
-    // Determine service name
+    // Determine service name — auto-detect from compose file when not explicitly set
     let service_name = project
         .service_name
         .clone()
+        .or_else(|| detect_first_compose_service(workspace, project.compose_file.as_deref()))
         .unwrap_or_else(|| "app".to_string());
 
     // Build override YAML content

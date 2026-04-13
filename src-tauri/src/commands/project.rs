@@ -3,7 +3,8 @@ use crate::cli::types::{
     Project, ProjectWithStatus, ProjectsConfig, EnvVarEntry,
     ProjectTypeDetection, ProjectEnvBinding,
 };
-use tauri::{AppHandle, Emitter};
+use crate::mdns::config::{self as mdns_config, ContainerMdnsOverride};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 
@@ -590,7 +591,14 @@ pub async fn project_up(app: AppHandle, id: String) -> Result<(), String> {
         }
     }
 
-    run_project_up(&app, &project, &event_name).await
+    run_project_up(&app, &project, &event_name).await?;
+
+    // Auto-register mDNS services for project ports
+    if let Err(e) = auto_register_project_mdns(&app, &project).await {
+        let _ = app.emit(&event_name, format!("mDNS auto-register warning: {}", e));
+    }
+
+    Ok(())
 }
 
 async fn run_project_up(app: &AppHandle, project: &Project, event_name: &str) -> Result<(), String> {
@@ -600,6 +608,124 @@ async fn run_project_up(app: &AppHandle, project: &Project, event_name: &str) ->
         "devcontainer" => devcontainer_project_up(app, project, event_name).await,
         _ => Err(format!("Unknown project type: {}", project.project_type)),
     }
+}
+
+// ─── mDNS Auto-Registration ────────────────────────────────────────────────
+
+/// Get running container names for a project.
+async fn get_project_container_names(project: &Project) -> Vec<String> {
+    let filter = match project.project_type.as_str() {
+        "compose" => {
+            let name = project.name.to_lowercase().replace(' ', "-");
+            format!("label=com.docker.compose.project={}", name)
+        }
+        "dockerfile" => {
+            let name = format!(
+                "colima-project-{}",
+                project.id.chars().take(8).collect::<String>()
+            );
+            format!("name={}", name)
+        }
+        "devcontainer" => {
+            format!(
+                "label=devcontainer.local_folder={}",
+                project.workspace_path
+            )
+        }
+        _ => return vec![],
+    };
+
+    match CliExecutor::run(
+        DOCKER,
+        &["ps", "--filter", &filter, "--format", "{{.Names}}"],
+    )
+    .await
+    {
+        Ok(out) => out
+            .lines()
+            .map(|l| l.trim().to_string())
+            .filter(|l| !l.is_empty())
+            .collect(),
+        Err(_) => vec![],
+    }
+}
+
+/// Parse the host port from a port mapping string like "8080:3000" → 8080.
+fn parse_host_port(mapping: &str) -> Option<u16> {
+    let trimmed = mapping.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    trimmed.split(':').next()?.parse::<u16>().ok()
+}
+
+/// Auto-register mDNS overrides for a project's containers after startup.
+async fn auto_register_project_mdns(app: &AppHandle, project: &Project) -> Result<(), String> {
+    let config_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+    let config_path = config_dir.join("mdns-config.json");
+    let mut config = mdns_config::load_config(&config_path).await;
+
+    if !config.enabled {
+        return Ok(());
+    }
+
+    // Get the first configured port
+    let first_port = project
+        .ports
+        .iter()
+        .find_map(|p| parse_host_port(p))
+        .or_else(|| {
+            if project.remote_debug {
+                Some(project.debug_port)
+            } else {
+                None
+            }
+        });
+
+    if first_port.is_none() {
+        return Ok(()); // No ports to register
+    }
+
+    let container_names = get_project_container_names(project).await;
+    if container_names.is_empty() {
+        return Ok(());
+    }
+
+    let project_hostname = project.name.to_lowercase().replace(' ', "-");
+    let mut changed = false;
+
+    for (i, name) in container_names.iter().enumerate() {
+        // Don't overwrite user-configured overrides
+        if config.container_overrides.contains_key(name) {
+            continue;
+        }
+
+        let hostname = if container_names.len() == 1 {
+            project_hostname.clone()
+        } else {
+            format!("{}-{}", project_hostname, i + 1)
+        };
+
+        config.container_overrides.insert(
+            name.clone(),
+            ContainerMdnsOverride {
+                enabled: true,
+                hostname: Some(hostname),
+                service_type: None,
+                port: first_port,
+            },
+        );
+        changed = true;
+    }
+
+    if changed {
+        mdns_config::save_config(&config_path, &config).await?;
+    }
+
+    Ok(())
 }
 
 async fn compose_up(

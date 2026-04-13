@@ -2,6 +2,7 @@ mod cli;
 mod commands;
 pub mod crypto;
 mod mdns;
+pub mod proxy;
 mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -12,6 +13,16 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_liquid_glass::init())
         .manage(mdns::manager::create_mdns_manager())
+        .manage({
+            let routes = std::sync::Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
+            let shutdown = std::sync::Arc::new(tokio::sync::Notify::new());
+            commands::proxy::ProxyState {
+                routes,
+                shutdown,
+                running: std::sync::Arc::new(tokio::sync::Mutex::new(false)),
+                port: 7080,
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             commands::colima::colima_status,
             commands::colima::colima_start,
@@ -107,6 +118,14 @@ pub fn run() {
             commands::mdns::mdns_remove_container_override,
             commands::mdns::mdns_sync_containers,
             commands::mdns::mdns_get_status,
+            // Reverse Proxy
+            commands::proxy::proxy_start,
+            commands::proxy::proxy_stop,
+            commands::proxy::proxy_get_status,
+            commands::proxy::proxy_add_route,
+            commands::proxy::proxy_remove_route,
+            commands::proxy::proxy_enable_pf,
+            commands::proxy::proxy_disable_pf,
         ])
         .setup(|app| {
             tray::create_tray(app)?;
