@@ -186,9 +186,18 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
           )}
           {project.status === "running" ? (
             <>
-              <Button size="sm" variant="outline" onClick={() => handleAction("rebuild")} disabled={disabled}>
-                <RotateCw className="h-3.5 w-3.5 mr-1" />
-                Rebuild
+              <Button
+                size="sm"
+                variant={hasChanges ? "default" : "outline"}
+                onClick={() => handleAction("rebuild")}
+                disabled={disabled}
+              >
+                {hasChanges ? (
+                  <Save className="h-3.5 w-3.5 mr-1" />
+                ) : (
+                  <RotateCw className="h-3.5 w-3.5 mr-1" />
+                )}
+                {hasChanges ? "Save & Rebuild" : "Rebuild"}
               </Button>
               <Button size="sm" variant="outline" onClick={() => handleAction("stop")} disabled={disabled}>
                 <Square className="h-3.5 w-3.5 mr-1" />
@@ -355,8 +364,27 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
           </div>
         </div>
 
-        {/* Save Button */}
-        {hasChanges && (
+        {/* Save / Rebuild notice */}
+        {hasChanges && project.status === "running" && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-amber-200/90">
+              Settings changed — rebuild required to apply.
+            </p>
+            <Button
+              size="sm"
+              onClick={() => handleAction("rebuild")}
+              disabled={disabled}
+            >
+              {disabled ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+              ) : (
+                <Save className="h-3.5 w-3.5 mr-1" />
+              )}
+              Save & Rebuild
+            </Button>
+          </div>
+        )}
+        {hasChanges && project.status !== "running" && (
           <Button
             onClick={handleSave}
             disabled={updateProject.isPending}
