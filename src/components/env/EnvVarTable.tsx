@@ -112,13 +112,13 @@ export function EnvVarTable({ projectId, envVars, activeProfile }: EnvVarTablePr
   };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 min-w-0 overflow-hidden">
       {profileVars.length > 0 && (
-        <div className="space-y-1 max-h-64 overflow-y-auto">
+        <div className="space-y-1 max-h-64 overflow-y-auto overflow-x-hidden">
           {profileVars.map((v) => (
             <div
               key={v.key}
-              className={`flex items-center gap-2 rounded-md px-2 py-1 ${
+              className={`flex items-center gap-2 rounded-md px-2 py-1 min-w-0 ${
                 v.secret
                   ? "bg-amber-500/5 border border-amber-500/10"
                   : "bg-muted/20"
@@ -161,9 +161,9 @@ export function EnvVarTable({ projectId, envVars, activeProfile }: EnvVarTablePr
                     {v.key}
                   </code>
                   <code
-                    className={`text-[11px] font-mono truncate flex-1 text-muted-foreground ${v.source === "manual" ? "cursor-pointer hover:text-foreground" : ""}`}
+                    className={`text-[11px] font-mono truncate flex-1 min-w-0 text-muted-foreground ${v.source === "manual" ? "cursor-pointer hover:text-foreground" : ""}`}
                     onClick={() => v.source === "manual" && startEdit(v)}
-                    title={v.source === "manual" ? "Click to edit" : undefined}
+                    title={v.source === "manual" ? "Click to edit" : v.value}
                   >
                     {v.secret && !revealedKeys.has(v.key) ? "••••••••" : (revealedKeys.get(v.key) ?? v.value)}
                   </code>
@@ -217,7 +217,7 @@ export function EnvVarTable({ projectId, envVars, activeProfile }: EnvVarTablePr
       )}
 
       {/* Add new env var */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         <Input
           placeholder="KEY"
           value={newKey}
