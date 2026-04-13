@@ -480,6 +480,8 @@ pub struct Project {
     pub infisical_config: Option<InfisicalConfig>,
     #[serde(default)]
     pub env_binding: ProjectEnvBinding,
+    #[serde(default)]
+    pub domain: Option<String>,
 }
 
 fn default_debug_port() -> u16 {

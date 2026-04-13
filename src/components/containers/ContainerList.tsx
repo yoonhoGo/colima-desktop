@@ -20,7 +20,11 @@ interface ComposeGroupData {
   containers: Container[];
 }
 
-export function ContainerList() {
+interface ContainerListProps {
+  composeFilter?: string | null;
+}
+
+export function ContainerList({ composeFilter }: ContainerListProps) {
   const { data: containers, isLoading, error } = useContainers();
   const prune = usePruneContainers();
   const [filter, setFilter] = useState<Filter>("all");
@@ -43,11 +47,12 @@ export function ContainerList() {
   const filtered = useMemo(() => {
     if (!containers) return [];
     return containers.filter((c) => {
-      if (filter === "running") return c.state === "running";
-      if (filter === "stopped") return c.state !== "running";
+      if (filter === "running" && c.state !== "running") return false;
+      if (filter === "stopped" && c.state === "running") return false;
+      if (composeFilter && c.compose_project !== composeFilter) return false;
       return true;
     });
-  }, [containers, filter]);
+  }, [containers, filter, composeFilter]);
 
   const { composeGroups, standalone } = useMemo(() => {
     const groupMap = new Map<string, Container[]>();

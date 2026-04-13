@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::net::Ipv4Addr;
 
 const DOCKER: &str = "docker";
-const DOMAIN_SUFFIX: &str = "colima.local";
 
 #[derive(Debug, Serialize, Clone)]
 pub struct DomainSyncResult {
@@ -73,7 +72,7 @@ pub async fn sync_containers(
             None => continue,
         };
 
-        let domain = format!("{}.{}", hostname, DOMAIN_SUFFIX);
+        let domain = format!("{}.{}", hostname, config.domain_suffix);
 
         // DNS: resolve domain to 127.0.0.1 (for host access via /etc/resolver)
         dns_table.insert(domain.clone(), Ipv4Addr::LOCALHOST);

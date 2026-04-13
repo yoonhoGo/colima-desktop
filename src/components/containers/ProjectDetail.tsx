@@ -45,6 +45,7 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
   const [debugPort, setDebugPort] = useState(project.debug_port);
   const [ports, setPorts] = useState<string[]>(project.ports.length > 0 ? project.ports : [""]);
   const [startupCommand, setStartupCommand] = useState(project.startup_command || "");
+  const [domain, setDomain] = useState(project.domain || "");
   const [hasChanges, setHasChanges] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -59,9 +60,10 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
       remoteDebug !== project.remote_debug ||
       debugPort !== project.debug_port ||
       JSON.stringify(ports.filter(Boolean)) !== JSON.stringify(project.ports) ||
-      startupCommand !== (project.startup_command || "");
+      startupCommand !== (project.startup_command || "") ||
+      domain !== (project.domain || "");
     setHasChanges(changed);
-  }, [dotenvPath, envCommand, watchMode, remoteDebug, debugPort, ports, startupCommand, project]);
+  }, [dotenvPath, envCommand, watchMode, remoteDebug, debugPort, ports, startupCommand, domain, project]);
 
   // Listen for logs
   useEffect(() => {
@@ -100,6 +102,7 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
     profiles: project.profiles,
     infisical_config: project.infisical_config,
     env_binding: project.env_binding,
+    domain: domain || null,
   });
 
   const handleSave = () => {
@@ -217,6 +220,24 @@ export function ProjectDetail({ project, onBack }: ProjectDetailProps) {
 
       {/* Config sections */}
       <div className="grid gap-4 [&>*]:min-w-0">
+        {/* Domain */}
+        <div className="glass-panel rounded-lg p-4 space-y-3">
+          <h3 className="text-sm font-semibold">Domain</h3>
+          <div className="space-y-2">
+            <Input
+              placeholder="e.g. dd-auth"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              className="h-7 text-xs font-mono"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              {domain
+                ? <>Access via <code className="text-[10px]">http://{domain}.colima.local</code> when gateway is running</>
+                : "Set a hostname to access this project via Container Domains"}
+            </p>
+          </div>
+        </div>
+
         {/* Watch Mode & Remote Debug */}
         <div className="glass-panel rounded-lg p-4 space-y-3">
           <h3 className="text-sm font-semibold">Execution Options</h3>

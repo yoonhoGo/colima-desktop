@@ -1,22 +1,76 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Play, Square, RotateCw } from "lucide-react";
+import { Play, Square, RotateCw, ChevronRight } from "lucide-react";
 import { useColimaStatus, useColimaAction } from "../../hooks/useColimaStatus";
+import { useContainers } from "../../hooks/useContainers";
 
-type Page = "containers" | "images" | "volumes" | "networks" | "environment" | "settings";
+export type Page =
+  | "containers"
+  | "images"
+  | "volumes"
+  | "networks"
+  | "environment"
+  // Settings sub-pages
+  | "settings/vm"
+  | "settings/mounts"
+  | "settings/network"
+  | "settings/docker"
+  | "settings/domains"
+  | "settings/terminal"
+  | "settings/update"
+  | "settings/appearance";
+
+export type ComposeFilter = string | null;
 
 interface SidebarProps {
   activePage: Page;
   onPageChange: (page: Page) => void;
+  composeFilter: ComposeFilter;
+  onComposeFilter: (filter: ComposeFilter) => void;
 }
 
-export function Sidebar({ activePage, onPageChange }: SidebarProps) {
+export function Sidebar({ activePage, onPageChange, composeFilter, onComposeFilter }: SidebarProps) {
   const { data: status } = useColimaStatus();
+  const { data: containers } = useContainers();
   const colimaAction = useColimaAction();
   const isLoading = colimaAction.isPending;
 
+  const [settingsOpen, setSettingsOpen] = useState(activePage.startsWith("settings/"));
+
+  // Extract unique compose projects from running containers
+  const composeProjects = Array.from(
+    new Set(
+      (containers ?? [])
+        .filter((c) => c.compose_project && c.state === "running")
+        .map((c) => c.compose_project!)
+    )
+  ).sort();
+
+  const isSettingsPage = activePage.startsWith("settings/");
+
+  const navItem = (page: Page, label: string, indent = false) => (
+    <button
+      key={page}
+      onClick={() => {
+        onPageChange(page);
+        if (page === "containers") onComposeFilter(null);
+      }}
+      className={cn(
+        "glass-nav-item rounded-lg px-3 py-2 text-left text-sm w-full",
+        indent && "pl-7 py-1.5 text-xs",
+        activePage === page
+          ? "text-accent-foreground font-medium"
+          : "text-muted-foreground hover:text-foreground"
+      )}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div className="glass-sidebar flex h-full w-52 flex-col p-3">
+      {/* Colima Status */}
       <div className="mb-4 flex flex-col gap-2 px-2">
         <div className="flex items-center gap-2">
           <div
@@ -35,19 +89,15 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
                 onClick={() => colimaAction.mutate("stop")}
                 disabled={isLoading}
                 className="glass-nav-item flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-                title="Stop Colima"
               >
-                <Square className="h-3 w-3" />
-                Stop
+                <Square className="h-3 w-3" /> Stop
               </button>
               <button
                 onClick={() => colimaAction.mutate("restart")}
                 disabled={isLoading}
                 className="glass-nav-item flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-                title="Restart Colima"
               >
-                <RotateCw className="h-3 w-3" />
-                Restart
+                <RotateCw className="h-3 w-3" /> Restart
               </button>
             </>
           ) : (
@@ -55,69 +105,85 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
               onClick={() => colimaAction.mutate("start")}
               disabled={isLoading}
               className="glass-nav-item flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs text-[var(--status-running-text)] hover:bg-[var(--status-running-bg)] disabled:opacity-50"
-              title="Start Colima"
             >
-              <Play className="h-3 w-3" />
-              Start
+              <Play className="h-3 w-3" /> Start
             </button>
           )}
         </div>
       </div>
-      <nav className="flex flex-col gap-1">
+
+      <nav className="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+        {/* Containers + Compose sub-items */}
+        {navItem("containers", "Containers")}
+        {activePage === "containers" && composeProjects.length > 0 && (
+          <div className="flex flex-col gap-0.5">
+            <button
+              onClick={() => onComposeFilter(null)}
+              className={cn(
+                "glass-nav-item rounded-lg pl-7 py-1.5 text-left text-xs w-full",
+                composeFilter === null
+                  ? "text-accent-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              All
+            </button>
+            {composeProjects.map((project) => (
+              <button
+                key={project}
+                onClick={() => onComposeFilter(project)}
+                className={cn(
+                  "glass-nav-item rounded-lg pl-7 py-1.5 text-left text-xs w-full truncate",
+                  composeFilter === project
+                    ? "text-accent-foreground font-medium"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title={project}
+              >
+                {project}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {navItem("images", "Images")}
+        {navItem("volumes", "Volumes")}
+        {navItem("networks", "Networks")}
+        {navItem("environment", "Environment")}
+
+        {/* Settings — expandable */}
         <button
-          onClick={() => onPageChange("containers")}
-          data-active={activePage === "containers"}
-          className={cn("glass-nav-item rounded-lg px-3 py-2 text-left text-sm",
-            activePage === "containers" ? "text-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Containers
-        </button>
-        <button
-          onClick={() => onPageChange("images")}
-          data-active={activePage === "images"}
-          className={cn("glass-nav-item rounded-lg px-3 py-2 text-left text-sm",
-            activePage === "images" ? "text-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Images
-        </button>
-        <button
-          onClick={() => onPageChange("volumes")}
-          data-active={activePage === "volumes"}
-          className={cn("glass-nav-item rounded-lg px-3 py-2 text-left text-sm",
-            activePage === "volumes" ? "text-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Volumes
-        </button>
-        <button
-          onClick={() => onPageChange("networks")}
-          data-active={activePage === "networks"}
-          className={cn("glass-nav-item rounded-lg px-3 py-2 text-left text-sm",
-            activePage === "networks" ? "text-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Networks
-        </button>
-        <button
-          onClick={() => onPageChange("environment")}
-          data-active={activePage === "environment"}
-          className={cn("glass-nav-item rounded-lg px-3 py-2 text-left text-sm",
-            activePage === "environment" ? "text-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Environment
-        </button>
-        <button
-          onClick={() => onPageChange("settings")}
-          data-active={activePage === "settings"}
-          className={cn("glass-nav-item rounded-lg px-3 py-2 text-left text-sm",
-            activePage === "settings" ? "text-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground"
+          onClick={() => {
+            setSettingsOpen(!settingsOpen);
+            if (!isSettingsPage) onPageChange("settings/vm");
+          }}
+          className={cn(
+            "glass-nav-item rounded-lg px-3 py-2 text-left text-sm w-full flex items-center justify-between",
+            isSettingsPage
+              ? "text-accent-foreground font-medium"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
           Settings
+          <ChevronRight
+            className={cn(
+              "h-3 w-3 transition-transform",
+              settingsOpen && "rotate-90"
+            )}
+          />
         </button>
+        {settingsOpen && (
+          <div className="flex flex-col gap-0.5">
+            {navItem("settings/vm", "VM", true)}
+            {navItem("settings/mounts", "Mounts", true)}
+            {navItem("settings/network", "Network", true)}
+            {navItem("settings/docker", "Docker", true)}
+            {navItem("settings/domains", "Domains", true)}
+            {navItem("settings/terminal", "Terminal", true)}
+            {navItem("settings/update", "Update", true)}
+            {navItem("settings/appearance", "Appearance", true)}
+          </div>
+        )}
       </nav>
     </div>
   );

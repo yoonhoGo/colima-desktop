@@ -85,6 +85,7 @@ fn migrate_config_if_needed() -> Result<(), String> {
                         profiles: vec!["default".to_string()],
                         infisical_config: None,
                         env_binding: ProjectEnvBinding::default(),
+                        domain: None,
                     });
                 }
             }
@@ -407,6 +408,7 @@ pub async fn add_project(
         profiles: vec!["default".to_string()],
         infisical_config: None,
         env_binding: ProjectEnvBinding::default(),
+        domain: None,
     };
 
     projects.push(project.clone());
@@ -694,7 +696,13 @@ async fn auto_register_project_domains(app: &AppHandle, project: &Project) -> Re
         return Ok(());
     }
 
-    let project_hostname = project.name.to_lowercase().replace(' ', "-");
+    // Use project.domain if set, otherwise derive from name
+    let project_hostname = project
+        .domain
+        .as_deref()
+        .filter(|d| !d.is_empty())
+        .map(|d| d.to_string())
+        .unwrap_or_else(|| project.name.to_lowercase().replace(' ', "-"));
     let mut changed = false;
 
     for (i, name) in container_names.iter().enumerate() {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Loader2, Globe } from "lucide-react";
 import { useDomainConfig, useDomainSetConfig } from "../../hooks/useDomains";
 import { api } from "../../lib/tauri";
@@ -13,17 +14,23 @@ export function ContainerDomainsSettings() {
 
   const [enabled, setEnabled] = useState(false);
   const [autoRegister, setAutoRegister] = useState(true);
+  const [domainSuffix, setDomainSuffix] = useState("colima.local");
 
   useEffect(() => {
     if (config) {
       setEnabled(config.enabled);
       setAutoRegister(config.auto_register);
+      setDomainSuffix(config.domain_suffix || "colima.local");
     }
   }, [config]);
 
   const hasChanges = (() => {
     if (!config) return false;
-    return enabled !== config.enabled || autoRegister !== config.auto_register;
+    return (
+      enabled !== config.enabled ||
+      autoRegister !== config.auto_register ||
+      domainSuffix !== (config.domain_suffix || "colima.local")
+    );
   })();
 
   const handleSave = () => {
@@ -32,6 +39,7 @@ export function ContainerDomainsSettings() {
       ...config,
       enabled,
       auto_register: autoRegister,
+      domain_suffix: domainSuffix,
     };
     saveMutation.mutate(updated);
   };
@@ -86,6 +94,20 @@ export function ContainerDomainsSettings() {
           />
           Auto-register containers with exposed ports
         </label>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Domain Suffix</label>
+          <Input
+            value={domainSuffix}
+            onChange={(e) => setDomainSuffix(e.target.value)}
+            disabled={saveMutation.isPending || !enabled}
+            placeholder="colima.local"
+            className="font-mono text-sm"
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Containers will be accessible at <code className="text-[10px]">name.{domainSuffix}</code>
+          </p>
+        </div>
 
         <Button
           onClick={handleSave}

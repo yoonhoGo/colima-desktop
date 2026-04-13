@@ -9,7 +9,7 @@ use tauri::{Manager, State};
 use tokio::sync::{Mutex, Notify};
 
 const DNS_PORT: u16 = 5553;
-const DOMAIN_SUFFIX: &str = "colima.local";
+const DEFAULT_DOMAIN_SUFFIX: &str = "colima.local";
 
 /// Managed state for the DNS + Gateway subsystem.
 pub struct ProxyState {
@@ -161,24 +161,29 @@ pub async fn proxy_stop(state: State<'_, ProxyState>) -> Result<(), String> {
 // ─── Status ─────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub async fn proxy_get_status(state: State<'_, ProxyState>) -> Result<ProxyStatus, String> {
+pub async fn proxy_get_status(
+    app: tauri::AppHandle,
+    state: State<'_, ProxyState>,
+) -> Result<ProxyStatus, String> {
     let running = *state.running.lock().await;
     let gw_running = gateway::is_gateway_running().await;
+    let path = config_path(&app)?;
+    let config = domain_config::load_config(&path).await;
+    let suffix = config.domain_suffix.clone();
 
-    // Read active routes from Traefik config dir
-    let routes = read_active_routes();
+    let routes = read_active_routes(&suffix);
 
     Ok(ProxyStatus {
         running,
         gateway_running: gw_running,
         dns_port: DNS_PORT,
-        domain_suffix: DOMAIN_SUFFIX.to_string(),
-        resolver_installed: check_resolver_installed(),
+        domain_suffix: suffix.clone(),
+        resolver_installed: check_resolver_installed(&suffix),
         routes,
     })
 }
 
-fn read_active_routes() -> Vec<ProxyRoute> {
+fn read_active_routes(suffix: &str) -> Vec<ProxyRoute> {
     let config_dir = match gateway::dynamic_config_dir() {
         Ok(d) => d,
         Err(_) => return vec![],
@@ -200,7 +205,7 @@ fn read_active_routes() -> Vec<ProxyRoute> {
                             .next()
                             .and_then(|p| p.parse::<u16>().ok())
                             .unwrap_or(0);
-                        let hostname = domain.trim_end_matches(&format!(".{}", DOMAIN_SUFFIX));
+                        let hostname = domain.trim_end_matches(&format!(".{}", suffix));
                         routes.push(ProxyRoute {
                             hostname: hostname.to_string(),
                             domain: domain.to_string(),
@@ -224,11 +229,14 @@ fn extract_between<'a>(text: &'a str, start: &str, end: &str) -> Option<String> 
 // ─── /etc/resolver ──────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub async fn proxy_install_resolver() -> Result<(), String> {
+pub async fn proxy_install_resolver(app: tauri::AppHandle) -> Result<(), String> {
+    let path = config_path(&app)?;
+    let config = domain_config::load_config(&path).await;
+    let suffix = &config.domain_suffix;
     let content = format!("nameserver 127.0.0.1\\nport {}", DNS_PORT);
     let script = format!(
         r#"do shell script "mkdir -p /etc/resolver && printf '{}\\n' > /etc/resolver/{}" with administrator privileges"#,
-        content, DOMAIN_SUFFIX
+        content, suffix
     );
 
     let output = tokio::process::Command::new("osascript")
@@ -246,10 +254,13 @@ pub async fn proxy_install_resolver() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn proxy_uninstall_resolver() -> Result<(), String> {
+pub async fn proxy_uninstall_resolver(app: tauri::AppHandle) -> Result<(), String> {
+    let path = config_path(&app)?;
+    let config = domain_config::load_config(&path).await;
+    let suffix = &config.domain_suffix;
     let script = format!(
         r#"do shell script "rm -f /etc/resolver/{}" with administrator privileges"#,
-        DOMAIN_SUFFIX
+        suffix
     );
 
     let output = tokio::process::Command::new("osascript")
@@ -266,7 +277,7 @@ pub async fn proxy_uninstall_resolver() -> Result<(), String> {
     Ok(())
 }
 
-fn check_resolver_installed() -> bool {
-    let path = format!("/etc/resolver/{}", DOMAIN_SUFFIX);
+fn check_resolver_installed(suffix: &str) -> bool {
+    let path = format!("/etc/resolver/{}", suffix);
     std::path::Path::new(&path).exists()
 }

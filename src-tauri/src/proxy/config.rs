@@ -8,8 +8,14 @@ pub struct DomainConfig {
     pub enabled: bool,
     #[serde(default = "default_true")]
     pub auto_register: bool,
+    #[serde(default = "default_domain_suffix")]
+    pub domain_suffix: String,
     #[serde(default)]
     pub container_overrides: HashMap<String, ContainerDomainOverride>,
+}
+
+fn default_domain_suffix() -> String {
+    "colima.local".to_string()
 }
 
 fn default_true() -> bool {
@@ -21,6 +27,7 @@ impl Default for DomainConfig {
         DomainConfig {
             enabled: false,
             auto_register: true,
+            domain_suffix: default_domain_suffix(),
             container_overrides: HashMap::new(),
         }
     }

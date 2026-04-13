@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
+import type { Page, ComposeFilter } from "./Sidebar";
 import { ContainerList } from "../containers/ContainerList";
 import { ImageList } from "../images/ImageList";
 import { VolumeList } from "../volumes/VolumeList";
@@ -14,116 +15,34 @@ import { TerminalSettings } from "../settings/TerminalSettings";
 import { ContainerDomainsSettings } from "../settings/ContainerDomainsSettings";
 import { EnvironmentPage } from "../environment/EnvironmentPage";
 
-type Page = "containers" | "images" | "volumes" | "networks" | "environment" | "settings";
-type SettingsTab = "vm" | "mounts" | "network" | "docker" | "domains" | "terminal" | "update" | "appearance";
-
 export function MainLayout() {
   const [activePage, setActivePage] = useState<Page>("containers");
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("vm");
+  const [composeFilter, setComposeFilter] = useState<ComposeFilter>(null);
 
   return (
     <div className="relative z-10 flex h-screen">
-      <Sidebar activePage={activePage} onPageChange={setActivePage} />
+      <Sidebar
+        activePage={activePage}
+        onPageChange={setActivePage}
+        composeFilter={composeFilter}
+        onComposeFilter={setComposeFilter}
+      />
       <main className="flex-1 min-w-0 overflow-auto p-4">
-        {activePage === "containers" && <ContainerList />}
+        {activePage === "containers" && (
+          <ContainerList composeFilter={composeFilter} />
+        )}
         {activePage === "images" && <ImageList />}
         {activePage === "volumes" && <VolumeList />}
         {activePage === "networks" && <NetworkList />}
         {activePage === "environment" && <EnvironmentPage />}
-        {activePage === "settings" && (
-          <div className="space-y-4">
-            <div className="mx-auto max-w-2xl flex gap-1 rounded-xl glass-panel p-1">
-              <button
-                onClick={() => setSettingsTab("vm")}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  settingsTab === "vm"
-                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
-                    : "text-muted-foreground hover:text-foreground border border-transparent"
-                }`}
-              >
-                VM
-              </button>
-              <button
-                onClick={() => setSettingsTab("mounts")}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  settingsTab === "mounts"
-                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
-                    : "text-muted-foreground hover:text-foreground border border-transparent"
-                }`}
-              >
-                Mounts
-              </button>
-              <button
-                onClick={() => setSettingsTab("network")}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  settingsTab === "network"
-                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
-                    : "text-muted-foreground hover:text-foreground border border-transparent"
-                }`}
-              >
-                Network
-              </button>
-              <button
-                onClick={() => setSettingsTab("docker")}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  settingsTab === "docker"
-                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
-                    : "text-muted-foreground hover:text-foreground border border-transparent"
-                }`}
-              >
-                Docker
-              </button>
-              <button
-                onClick={() => setSettingsTab("domains")}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  settingsTab === "domains"
-                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
-                    : "text-muted-foreground hover:text-foreground border border-transparent"
-                }`}
-              >
-                Domains
-              </button>
-              <button
-                onClick={() => setSettingsTab("terminal")}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  settingsTab === "terminal"
-                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
-                    : "text-muted-foreground hover:text-foreground border border-transparent"
-                }`}
-              >
-                Terminal
-              </button>
-              <button
-                onClick={() => setSettingsTab("update")}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  settingsTab === "update"
-                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
-                    : "text-muted-foreground hover:text-foreground border border-transparent"
-                }`}
-              >
-                Update
-              </button>
-              <button
-                onClick={() => setSettingsTab("appearance")}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  settingsTab === "appearance"
-                    ? "bg-[var(--glass-bg-active)] text-foreground shadow-sm border border-[var(--glass-border-strong)]"
-                    : "text-muted-foreground hover:text-foreground border border-transparent"
-                }`}
-              >
-                Appearance
-              </button>
-            </div>
-            {settingsTab === "vm" && <VmSettings />}
-            {settingsTab === "mounts" && <MountSettings />}
-            {settingsTab === "network" && <NetworkSettingsPanel />}
-            {settingsTab === "docker" && <DockerSettingsPanel />}
-            {settingsTab === "domains" && <ContainerDomainsSettings />}
-            {settingsTab === "terminal" && <TerminalSettings />}
-            {settingsTab === "update" && <UpdatePanel />}
-            {settingsTab === "appearance" && <AppearanceSettings />}
-          </div>
-        )}
+        {activePage === "settings/vm" && <VmSettings />}
+        {activePage === "settings/mounts" && <MountSettings />}
+        {activePage === "settings/network" && <NetworkSettingsPanel />}
+        {activePage === "settings/docker" && <DockerSettingsPanel />}
+        {activePage === "settings/domains" && <ContainerDomainsSettings />}
+        {activePage === "settings/terminal" && <TerminalSettings />}
+        {activePage === "settings/update" && <UpdatePanel />}
+        {activePage === "settings/appearance" && <AppearanceSettings />}
       </main>
     </div>
   );

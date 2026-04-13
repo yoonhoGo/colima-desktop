@@ -224,6 +224,7 @@ export interface Project {
   profiles: string[];
   infisical_config: InfisicalConfig | null;
   env_binding: ProjectEnvBinding;
+  domain: string | null;
   status: "running" | "stopped" | "not_created" | "path_missing" | "unknown";
   container_ids: string[];
 }
@@ -262,6 +263,7 @@ export type DevcontainerSourceType = "image" | "dockerfile";
 export interface DomainConfig {
   enabled: boolean;
   auto_register: boolean;
+  domain_suffix: string;
   container_overrides: Record<string, ContainerDomainOverride>;
 }
 
