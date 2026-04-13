@@ -1,5 +1,26 @@
 use std::process::Output;
+use std::sync::LazyLock;
 use tokio::process::Command;
+
+/// Extended PATH that includes common binary locations for macOS app bundles.
+/// macOS .app bundles have a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin),
+/// so Homebrew and other user-installed binaries are not found without this.
+static EXTENDED_PATH: LazyLock<String> = LazyLock::new(|| {
+    let extra = [
+        "/opt/homebrew/bin",
+        "/opt/homebrew/sbin",
+        "/usr/local/bin",
+        "/usr/local/sbin",
+    ];
+    let current = std::env::var("PATH").unwrap_or_default();
+    let mut parts: Vec<&str> = extra.to_vec();
+    for p in current.split(':') {
+        if !parts.contains(&p) {
+            parts.push(p);
+        }
+    }
+    parts.join(":")
+});
 
 pub struct CliExecutor;
 
@@ -7,6 +28,7 @@ impl CliExecutor {
     pub async fn run(program: &str, args: &[&str]) -> Result<String, String> {
         let output: Output = Command::new(program)
             .args(args)
+            .env("PATH", &*EXTENDED_PATH)
             .env("DOCKER_HOST", docker_host())
             .output()
             .await
@@ -38,6 +60,22 @@ impl CliExecutor {
         }
         Ok(results)
     }
+}
+
+/// Find a binary by checking common install paths.
+/// Returns the absolute path if found, or None.
+pub fn find_binary(name: &str) -> Option<String> {
+    let candidates = [
+        format!("/opt/homebrew/bin/{}", name),
+        format!("/usr/local/bin/{}", name),
+        format!("/usr/bin/{}", name),
+    ];
+    for path in &candidates {
+        if std::path::Path::new(path).exists() {
+            return Some(path.clone());
+        }
+    }
+    None
 }
 
 pub fn docker_host() -> String {
