@@ -1,5 +1,6 @@
 use serde::Serialize;
-use tokio::process::Command;
+
+use crate::cli::executor::find_binary;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct ColimaInstallCheck {
@@ -9,23 +10,15 @@ pub struct ColimaInstallCheck {
 
 #[tauri::command]
 pub async fn check_colima_installed() -> Result<ColimaInstallCheck, String> {
-    let output = Command::new("which")
-        .arg("colima")
-        .output()
-        .await
-        .map_err(|e| format!("Failed to execute which: {}", e))?;
-
-    if output.status.success() {
-        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        Ok(ColimaInstallCheck {
+    match find_binary("colima") {
+        Some(path) => Ok(ColimaInstallCheck {
             installed: true,
             path: Some(path),
-        })
-    } else {
-        Ok(ColimaInstallCheck {
+        }),
+        None => Ok(ColimaInstallCheck {
             installed: false,
             path: None,
-        })
+        }),
     }
 }
 
