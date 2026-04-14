@@ -18,7 +18,7 @@ interface DevcontainerConfigEditorProps {
 const TABS: { key: ConfigTab; label: string }[] = [
   { key: "general", label: "General" },
   { key: "features", label: "Features" },
-  { key: "ports-env", label: "Ports & Env" },
+  { key: "ports-env", label: "Env" },
   { key: "lifecycle", label: "Lifecycle" },
   { key: "json", label: "JSON" },
 ];
