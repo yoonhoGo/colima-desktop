@@ -59,6 +59,10 @@ export function DevcontainerConfigEditor({
           const validationErrs = parseValidationErrors(err);
           if (validationErrs.length > 0) {
             setSaveErrors(validationErrs);
+          } else {
+            const msg =
+              err instanceof Error ? err.message : typeof err === "string" ? err : "Unknown error";
+            setSaveErrors([{ path: "", message: msg }]);
           }
         },
       },
