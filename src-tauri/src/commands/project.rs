@@ -3,7 +3,7 @@ use crate::cli::types::{
     Project, ProjectWithStatus, ProjectsConfig, EnvVarEntry,
     ProjectTypeDetection, ProjectEnvBinding,
 };
-use crate::proxy::config::{self as domain_config, ContainerDomainOverride};
+use crate::proxy::config::{self as domain_config, ContainerDomainOverride, PortRoute};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
@@ -658,15 +658,30 @@ async fn get_project_container_names(project: &Project) -> Vec<String> {
 }
 
 /// Parse the host port from a port mapping string like "8080:3000" → 8080.
-fn parse_host_port(mapping: &str) -> Option<u16> {
+/// Parse a port mapping string into (host_port, container_port).
+/// Supports formats: "8080:3000", "8080:3000/tcp", "3000" (same on both sides).
+fn parse_port_mapping(mapping: &str) -> Option<(u16, u16)> {
     let trimmed = mapping.trim();
     if trimmed.is_empty() {
         return None;
     }
-    trimmed.split(':').next()?.parse::<u16>().ok()
+    let parts: Vec<&str> = trimmed.split(':').collect();
+    match parts.len() {
+        1 => {
+            let p = parts[0].split('/').next()?.parse::<u16>().ok()?;
+            Some((p, p))
+        }
+        2 => {
+            let host = parts[0].parse::<u16>().ok()?;
+            let container = parts[1].split('/').next()?.parse::<u16>().ok()?;
+            Some((host, container))
+        }
+        _ => None,
+    }
 }
 
-/// Auto-register mDNS overrides for a project's containers after startup.
+/// Auto-register domain overrides for a project's containers after startup.
+/// Creates gateway routes for ALL configured ports (not just the first one).
 async fn auto_register_project_domains(app: &AppHandle, project: &Project) -> Result<(), String> {
     let config_dir = app
         .path()
@@ -679,20 +694,29 @@ async fn auto_register_project_domains(app: &AppHandle, project: &Project) -> Re
         return Ok(());
     }
 
-    // Get the first configured port
-    let first_port = project
+    // Parse ALL port mappings into PortRoute entries
+    let mut port_routes: Vec<PortRoute> = project
         .ports
         .iter()
-        .find_map(|p| parse_host_port(p))
-        .or_else(|| {
-            if project.remote_debug {
-                Some(project.debug_port)
-            } else {
-                None
-            }
-        });
+        .filter_map(|p| parse_port_mapping(p))
+        .map(|(host, container)| PortRoute {
+            host_port: host,
+            container_port: container,
+        })
+        .collect();
 
-    if first_port.is_none() {
+    // Include debug port if enabled
+    if project.remote_debug {
+        let dp = project.debug_port;
+        if !port_routes.iter().any(|r| r.host_port == dp) {
+            port_routes.push(PortRoute {
+                host_port: dp,
+                container_port: dp,
+            });
+        }
+    }
+
+    if port_routes.is_empty() {
         return Ok(()); // No ports to register
     }
 
@@ -727,7 +751,8 @@ async fn auto_register_project_domains(app: &AppHandle, project: &Project) -> Re
             ContainerDomainOverride {
                 enabled: true,
                 hostname: Some(hostname),
-                port: first_port,
+                port: Some(port_routes[0].container_port),
+                port_routes: port_routes.clone(),
             },
         );
         changed = true;
